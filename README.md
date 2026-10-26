@@ -1,36 +1,91 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Destroyed by Moths FanFest
 
-## Getting Started
+A fan-engagement site for the band Destroyed by Moths: fans sign in with an emailed code, earn XP for quests (visits, quizzes, polls, uploads, social proof, email signup, invites), climb weekly, monthly and lifetime leaderboards, and claim rewards. The band runs everything from `/destroyedbymoths/admin`.
 
-First, run the development server:
+It is built to host more than one band: each band is a row in `channels`, served at `/<slug>`.
+
+## Stack
+
+- Next.js 16 (App Router, TypeScript, Server Actions), Tailwind 4, pnpm
+- Supabase: Postgres, Auth (email OTP), Storage. All XP writes go through Postgres functions in `supabase/migrations/0002_functions.sql`; row-level security is on everywhere.
+- Vercel for hosting (Pro plan for a merch-promoting site).
+- Tests: Vitest (unit) and Playwright (end-to-end, phone viewport).
+
+## Setup
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
+cp .env.example .env.local   # fill in the Supabase values from Project Settings -> API Keys
+pnpm dev                     # http://localhost:3000 -> /destroyedbymoths
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Database: apply `supabase/migrations/*.sql` in order to a fresh project (Supabase SQL editor, the MCP, or `supabase db push` after `supabase link`). `0004_seed_dbm.sql` seeds the channel, quests, news and rewards with placeholder copy; edit them in the admin area.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Auth email: `supabase/config.toml` holds the auth settings and `supabase/templates/*.html` the email with the 6-digit code. Push them with `supabase config push`. Before launch, set `site_url` to the production domain and configure custom SMTP (for example Resend with a verified band domain); Supabase's built-in email service is rate-limited and for development only.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Admin
 
-## Learn More
+Admin rights live in `channel_admins`. After someone signs in once:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+node --env-file=.env.local scripts/set-admin.mts amanda@example.com destroyedbymoths
+node --env-file=.env.local scripts/set-admin.mts someone@example.com destroyedbymoths --remove
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+The script refuses to remove the last admin.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## How XP works
 
-## Deploy on Vercel
+- `xp_ledger` is append-only. Every award is one row with a `period_key`; a unique index on `(fan_id, quest_id, period_key)` makes double pay impossible. Totals and boards are sums.
+- Week and day boundaries use the channel's `timezone` (default `America/Los_Angeles`). Weeks start Monday.
+- Daily visit, link visits, polls, quizzes, email signup, fan art and merch-in-the-wild pay instantly. Playlist screenshots, receipts and social links wait in `/admin/review` and pay on Approve.
+- Fan art and merch-in-the-wild appear under `/admin/uploads`: Feature and Hide keep the XP, Remove reverses it with a negative row.
+- Invites convert when the invited fan earns their first XP other than Daily Visit; the inviter is paid in the same transaction, up to the cap in the invite quest's config (`{"cap": 10}`).
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Tests
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+pnpm exec vitest run                                   # unit
+node --env-file=.env.local scripts/seed-test-users.mts  # once: admin@test.dbm, fan1..3@test.dbm
+pnpm exec playwright test                              # end to end against pnpm dev
+```
+
+The end-to-end suite signs test accounts in with generated magic-link tokens, so it needs `SUPABASE_SECRET_KEY` in `.env.local`. It wipes the test fans' XP first; keep it off the production database or point `E2E_BASE_URL` at a preview.
+
+## Deploy
+
+```bash
+vercel login
+vercel link
+vercel env add NEXT_PUBLIC_SUPABASE_URL production
+vercel env add NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY production
+vercel env add SUPABASE_SECRET_KEY production
+vercel env add NEXT_PUBLIC_SITE_URL production
+vercel --prod
+```
+
+Then add the production URL to `additional_redirect_urls` and `site_url` in `supabase/config.toml` and push the config again.
+
+## Handoff checklist
+
+- [ ] GitHub: Transfer Ownership of this repository.
+- [ ] Vercel: transfer the project, or recreate it from the repo and set the four env vars.
+- [ ] Supabase: transfer the project; rotate the secret key after the transfer.
+- [ ] Email: verify the band's sending domain and set SMTP in `supabase/config.toml`.
+- [ ] Domain: point it at Vercel; update `site_url` and `NEXT_PUBLIC_SITE_URL`.
+- [ ] Admins: run `scripts/set-admin.mts` for the band's accounts, then remove the builder's.
+- [ ] Content: replace placeholder quest copy, XP values, links (`/admin/settings`) and rewards.
+
+## Layout
+
+```
+app/[channel]/            channel home, sign-in, account, privacy, leaderboard
+app/[channel]/q/[quest]/  quest detail: quiz and poll forms, uploads, links, email list, invites
+app/[channel]/admin/      review queue, uploads, quests, news, rewards, fans, email list, settings
+app/go/[channel]/[quest]/ visit-link quests: log the click, award, redirect
+app/auth/confirm/         magic-link landing
+lib/                      Supabase clients, data loaders, quest state, link rules, period keys
+supabase/migrations/      schema, RLS, functions, storage, seed
+scripts/                  test users, admin grants
+tests/                    unit (vitest) and e2e (playwright)
+```
