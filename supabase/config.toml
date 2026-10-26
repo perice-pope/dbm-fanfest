@@ -2,8 +2,8 @@
 project_id = "dbm-fanfest"
 
 [auth]
-site_url = "http://localhost:3000"
-additional_redirect_urls = ["http://localhost:3000/**", "https://*.vercel.app/**"]
+site_url = "https://dbm-fanfest.vercel.app"
+additional_redirect_urls = ["http://localhost:3000/**", "https://dbm-fanfest.vercel.app/**", "https://*.vercel.app/**"]
 jwt_expiry = 3600
 enable_signup = true
 enable_anonymous_sign_ins = false

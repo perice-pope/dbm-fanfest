@@ -4,6 +4,7 @@ try { process.loadEnvFile(".env.local"); } catch { /* env already set */ }
 
 export default defineConfig({
   testDir: "tests/e2e",
+  globalTeardown: "./tests/e2e/global-teardown.ts",
   timeout: 60_000,
   retries: 0,
   workers: 1,

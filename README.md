@@ -50,7 +50,7 @@ node --env-file=.env.local scripts/seed-test-users.mts  # once: admin@test.dbm, 
 pnpm exec playwright test                              # end to end against pnpm dev
 ```
 
-The end-to-end suite signs test accounts in with generated magic-link tokens, so it needs `SUPABASE_SECRET_KEY` in `.env.local`. It wipes the test fans' XP first; keep it off the production database or point `E2E_BASE_URL` at a preview.
+The end-to-end suite signs test accounts in with generated magic-link tokens, so it needs `SUPABASE_SECRET_KEY` in `.env.local`. It wipes the test fans' XP first and, when it finishes, hides the test fans from the public boards and reopens the draws it closed. Point `E2E_BASE_URL` at a deployment to test it live (`E2E_BASE_URL=https://dbm-fanfest.vercel.app pnpm exec playwright test`).
 
 ## Deploy
 
