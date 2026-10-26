@@ -116,7 +116,7 @@ test("leaderboard and activity show the fan", async ({ page }) => {
   await expect(page.getByRole("heading", { name: /Weekly leaderboard/ })).toBeVisible();
   const board = page.locator('section[aria-label="Leaderboard"]');
   await expect(board.getByText("Fan One")).toBeVisible();
-  await expect(board.getByText("1,220")).toBeVisible();
+  await expect(board.getByText("1,220").first()).toBeVisible();
   await expect(page.locator('section[aria-label="Recent activity"]').getByText("Fan One").first()).toBeVisible();
 });
 
