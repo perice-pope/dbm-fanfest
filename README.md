@@ -66,6 +66,21 @@ vercel --prod
 
 Then add the production URL to `additional_redirect_urls` and `site_url` in `supabase/config.toml` and push the config again.
 
+## Matching the Figma
+
+The design is the Figma Sites file "DBM" (figma.com/site/GYEU1tG1pavHWKE9tjZ3PC). Figma's file and node endpoints refuse Sites files, so the tooling works from an SVG export of the page plus the image-fills endpoint.
+
+```bash
+# token: Figma -> Settings -> Security -> personal access token (file content read-only)
+mkdir -p ~/.config/figma && printf '%s' 'figd_...' > ~/.config/figma/token && chmod 600 ~/.config/figma/token
+
+node scripts/figma-pull.mts          # tries the REST file API (works for Design files)
+node scripts/figma-rasterize.mts     # renders figma/frames/*.svg in Chromium at 2x -> figma/renders
+E2E_BASE_URL=http://localhost:3000 node scripts/figma-compare.mts   # side-by-side + diff -> figma/compare/index.html
+```
+
+For this Sites file the page SVG was fetched with `GET /v1/images/:key?ids=0:1&format=svg&svg_include_id=true&svg_include_node_id=true&svg_outline_text=false`, image fills with `GET /v1/files/:key/images`, and per-frame inventories (every text layer with font, size, weight, colour and position) were written to `figma/inventory-*.md`. Frame node ids: /dbm Desktop 64:5258, Tablet 64:5634, Mobile 64:6010; landing 30:7058 and 80:7113; Join or Sign In modal 66:7033. The exact image assets are in `public/dbm`. Design tokens live at the top of `app/globals.css`; change the Figma first, then the tokens.
+
 ## Handoff checklist
 
 - [ ] GitHub: Transfer Ownership of this repository.
