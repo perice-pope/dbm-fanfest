@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getChannel, getFanContext, getViewer, settingsOf, type Quest } from "@/lib/data";
+import { getChannel, getFanContext, getViewer, isAdminOf, settingsOf, type Quest } from "@/lib/data";
 import { questView, configOf, RESPONSE_TYPES, UPLOAD_TYPES, REJECT_REASONS } from "@/lib/quest-state";
 import { fmtXp, fmtDeadline } from "@/lib/format";
 import { ResponseForm } from "./ResponseForm";
@@ -9,6 +9,9 @@ import { UploadForm } from "./UploadForm";
 import { LinkForm } from "./LinkForm";
 import { JoinListForm } from "./JoinListForm";
 import { InvitePanel } from "./InvitePanel";
+import { ListenPanel } from "./ListenPanel";
+import { creditedToday, type ListenConfig } from "@/lib/listen-match";
+import { periodKey } from "@/lib/period";
 import { requestOrigin } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
@@ -19,8 +22,10 @@ export default async function QuestPage({ params }: { params: Promise<{ channel:
   if (!channel) notFound();
   const sb = await createClient();
   const { data: quest } = await sb.from("quests").select("*").eq("id", questId).eq("channel_id", channel.id).maybeSingle();
-  if (!quest || quest.status !== "live") notFound();
   const { fan } = await getViewer();
+  // Drafts stay hidden from fans; channel admins can open one to test it before launch.
+  const preview = !!quest && quest.status === "draft" && !!fan && (await isAdminOf(channel.id));
+  if (!quest || (quest.status !== "live" && !preview)) notFound();
   const ctx = await getFanContext(channel, fan);
   const view = questView(quest as Quest, { tz: channel.timezone, now: new Date(), lifetimeXp: ctx.lifetimeXp, ledger: ctx.ledger, submissions: ctx.submissions });
   const cfg = configOf(quest as Quest);
@@ -29,9 +34,14 @@ export default async function QuestPage({ params }: { params: Promise<{ channel:
   const signedIn = !!fan;
   const canAct = signedIn && (view.state === "available" || (view.state === "rejected" && view.retryAllowed));
   const origin = await requestOrigin();
+  const listenAccount = signedIn && quest.type === "listen"
+    ? (await sb.from("listen_accounts").select("username, connected_at, last_synced_at").eq("fan_id", fan!.id).maybeSingle()).data
+    : null;
+  const listenCfg = cfg as ListenConfig;
 
   return (
     <div className="mx-auto max-w-md px-[24px] pt-[24px]">
+      {preview && <p className="mb-3 rounded-[8px] border border-yellow p-3 text-sm text-yellow">Draft preview. Fans cannot see this quest until its status is live.</p>}
       <Link href={`/${slug}#quests`} className="text-xs uppercase tracking-[0.12em] text-muted hover:text-text">‹ Quests</Link>
       <div className="mt-3 flex items-center gap-3">
         <span className="badge-xp">{fmtXp(quest.xp)} XP</span>
@@ -54,7 +64,7 @@ export default async function QuestPage({ params }: { params: Promise<{ channel:
         {signedIn && view.state === "in_review" && (
           <p className="card p-5 text-sm">Submitted. XP lands when the band reviews it. <span className="text-muted">{settings.review_cadence ?? ""}</span></p>
         )}
-        {signedIn && view.state === "completed" && quest.type !== "invite" && (
+        {signedIn && view.state === "completed" && quest.type !== "invite" && quest.type !== "listen" && (
           <p className="card p-5 text-sm"><span className="text-success">Completed.</span> {view.resetsLabel ? `${view.resetsLabel}.` : "Nice work."}</p>
         )}
         {signedIn && view.state === "rejected" && view.latest?.reject_reason && (
@@ -69,6 +79,9 @@ export default async function QuestPage({ params }: { params: Promise<{ channel:
         {canAct && RESPONSE_TYPES.has(quest.type) && <ResponseForm slug={slug} questId={quest.id} type={quest.type} questions={cfg.questions ?? []} />}
         {canAct && UPLOAD_TYPES.has(quest.type) && (
           <UploadForm slug={slug} questId={quest.id} channelId={channel.id} fanId={fan!.id} type={quest.type} kind={cfg.kind} rights={cfg.rights} auto={!!cfg.auto_approve} reviewCadence={settings.review_cadence} />
+        )}
+        {signedIn && quest.type === "listen" && (view.state === "available" || view.state === "completed") && (
+          <ListenPanel slug={slug} questId={quest.id} account={listenAccount} today={creditedToday(ctx.ledger, quest.id, periodKey("daily", channel.timezone, new Date()))} cap={listenCfg.daily_cap ?? 4} xp={quest.xp} />
         )}
         {canAct && quest.type === "social_link" && <LinkForm slug={slug} questId={quest.id} reviewCadence={settings.review_cadence} />}
         {canAct && quest.type === "email_signup" && <JoinListForm slug={slug} consent={cfg.consent ?? "Yes, email me about the band."} joined={ctx.joinedList} />}

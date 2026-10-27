@@ -56,6 +56,19 @@ The end-to-end suite signs test accounts in with generated magic-link tokens, so
 
 The Figma chat pill opens a fan chat panel. Everyone can read it; fans sign in to post (the join modal opens for visitors). Messages go through `post_chat_message`, which trims the text to 500 characters, refuses hidden and banned fans, and limits a fan to 3 posts per 10 seconds and 40 per 10 minutes, with a repeat of the same line inside a minute refused. A fan can delete their own message and a channel admin can delete any (logged in `admin_actions`); deleted rows stay in the table with `deleted_at` set. The panel updates through Supabase Realtime on `chat_messages` plus a 20 s poll while open. Signed-in fans ping `touch_presence` every 4 minutes, and `fans_online` counts fans seen in the last 10 minutes. Recent Activity on the channel page scrolls on its own and refreshes every 30 s.
 
+## Listening quest (draft)
+
+"Stream Destroyed by Moths" pays XP for actual plays, read from ListenBrainz. It ships as a **draft**: fans cannot see it, and channel admins can open it from Admin → Quests to test it. It goes live when Amanda approves the MetaBrainz commercial tier (likely Bronze, about $100 a month) and her distributor confirms XP for plays does not break streaming rules.
+
+How it works:
+
+- The fan makes a free ListenBrainz account, links Spotify there (or Last.fm, for Tidal, Deezer or YouTube), and pastes their ListenBrainz user token on the quest page. The server checks the token with ListenBrainz, stores only the username in `listen_accounts`, and discards the token. One ListenBrainz account can belong to one fan.
+- "Check my plays" (at most once a minute) and a daily Vercel Cron job (`/api/cron/listens`, `vercel.json`) read new plays since the fan connected. Plays whose artist is the band pay the quest's XP through `award_listens`: one credited play per song per local day, up to `daily_cap` songs a day. Activity shows them as `Streamed "Song"`.
+- Quest config (Admin → Quests): `artist` (defaults to the channel name), `artist_mbid` once the band is in MusicBrainz, `daily_cap` (default 4), and `services`, an optional allowlist such as `["spotify.com"]`. Placeholders today: 25 XP a song, 4 songs a day.
+- Apple Music and Amazon Music cannot report plays to ListenBrainz. Plays are self-reported by the fan's apps, so they can be faked; the daily cap bounds that.
+
+To launch: set `CRON_SECRET` in Vercel (Production) to a long random string, redeploy, then set the quest's status to `live`. Vercel's free plan runs the cron once a day, which is what `vercel.json` asks for.
+
 ## Filler data
 
 Until real fans arrive, the live site is filled with seeded activity so it looks busy: 60 fake fans (`first.l<n>@seed.dbm`, `fans.is_seed = true`) with 75 days of XP history, extra XP rows for the builder's own account so it sits near the top of the boards, and about 150 chat lines (`chat_messages.is_seed = true`) over the last 10 days. Every seeded ledger row carries `ref_type = 'seed'`. The plan is deterministic (`scripts/filler-plan.mts`, seeded from each fan's email), so a refresh produces the same people with history shifted to today.
@@ -100,6 +113,8 @@ E2E_BASE_URL=http://localhost:3000 node scripts/figma-compare.mts   # side-by-si
 For this Sites file the page SVG was fetched with `GET /v1/images/:key?ids=0:1&format=svg&svg_include_id=true&svg_include_node_id=true&svg_outline_text=false`, image fills with `GET /v1/files/:key/images`, and per-frame inventories (every text layer with font, size, weight, colour and position) were written to `figma/inventory-*.md`. Frame node ids: /dbm Desktop 64:5258, Tablet 64:5634, Mobile 64:6010; landing 30:7058 and 80:7113; Join or Sign In modal 66:7033. The exact image assets are in `public/dbm`. Design tokens live at the top of `app/globals.css`; change the Figma first, then the tokens.
 
 ## Handoff checklist
+
+- [ ] Before the listening quest goes live: `CRON_SECRET` set in Vercel, MetaBrainz commercial tier approved by Amanda, distributor check done.
 
 - [ ] GitHub: Transfer Ownership of this repository.
 - [ ] Vercel: transfer the project, or recreate it from the repo and set the four env vars.

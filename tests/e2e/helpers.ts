@@ -30,7 +30,7 @@ export async function resetTestFans() {
   const { data: fans } = await sb.from("fans").select("id").like("email", "%@test.dbm");
   const ids = (fans ?? []).map((f) => f.id);
   if (ids.length === 0) return;
-  for (const t of ["xp_ledger", "submissions", "quest_responses", "reward_claims", "reward_entries", "email_signups", "link_visits", "chat_messages"] as const) {
+  for (const t of ["xp_ledger", "submissions", "quest_responses", "reward_claims", "reward_entries", "email_signups", "link_visits", "chat_messages", "listen_accounts"] as const) {
     await sb.from(t).delete().in("fan_id", ids);
   }
   await sb.from("invites").delete().in("invitee_fan_id", ids);

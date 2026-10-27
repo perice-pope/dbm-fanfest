@@ -4,7 +4,7 @@ import { requireAdmin } from "../../_lib";
 import { saveQuest } from "../../actions";
 
 export const dynamic = "force-dynamic";
-const TYPES = ["daily_visit", "visit_link", "invite", "quiz", "poll", "weekly_vote", "photo_proof", "receipt_proof", "social_link", "social_screenshot", "email_signup"];
+const TYPES = ["daily_visit", "visit_link", "invite", "quiz", "poll", "weekly_vote", "photo_proof", "receipt_proof", "social_link", "social_screenshot", "email_signup", "listen"];
 const RULES = ["once", "daily", "weekly", "monthly", "per_item"];
 
 export default async function QuestEdit({ params, searchParams }: { params: Promise<{ channel: string; id: string }>; searchParams: Promise<{ error?: string }> }) {
@@ -34,7 +34,7 @@ export default async function QuestEdit({ params, searchParams }: { params: Prom
         <label className="text-sm sm:col-span-2">Link URL (visit link)<input name="link_url" className="input mt-1" defaultValue={q?.link_url ?? ""} /></label>
         <label className="text-sm">Deadline (UTC)<input name="deadline" type="datetime-local" className="input mt-1" defaultValue={toLocal(q?.deadline ?? null)} /></label>
         <label className="text-sm">Sort order<input name="sort_order" type="number" className="input mt-1" defaultValue={q?.sort_order ?? 100} /></label>
-        <label className="text-sm sm:col-span-2">Config (JSON: questions, auto_approve, kind, hint, rights, consent, cap, variant)
+        <label className="text-sm sm:col-span-2">Config (JSON: questions, auto_approve, kind, hint, rights, consent, cap, variant; listen: artist, artist_mbid, daily_cap, services)
           <textarea name="config" className="input mt-1 font-mono text-xs" rows={10} defaultValue={JSON.stringify(q?.config ?? {}, null, 2)} />
         </label>
         <label className="text-sm sm:col-span-2">Quiz answers (correct option index per question, comma separated; 0 = first option)<input name="quiz_answers" className="input mt-1" defaultValue={answerStr} placeholder="0,1,0,0,0" /></label>

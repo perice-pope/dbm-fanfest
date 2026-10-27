@@ -395,6 +395,41 @@ export type Database = {
           },
         ]
       }
+      listen_accounts: {
+        Row: {
+          connected_at: string
+          cursor_ts: number
+          fan_id: string
+          last_synced_at: string | null
+          service: string
+          username: string
+        }
+        Insert: {
+          connected_at?: string
+          cursor_ts?: number
+          fan_id: string
+          last_synced_at?: string | null
+          service?: string
+          username: string
+        }
+        Update: {
+          connected_at?: string
+          cursor_ts?: number
+          fan_id?: string
+          last_synced_at?: string | null
+          service?: string
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listen_accounts_fan_id_fkey"
+            columns: ["fan_id"]
+            isOneToOne: true
+            referencedRelation: "fans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       news_items: {
         Row: {
           body: string | null
@@ -1046,6 +1081,15 @@ export type Database = {
       }
       attach_invite: {
         Args: { p_channel: string; p_code: string }
+        Returns: Json
+      }
+      award_listens: {
+        Args: {
+          p_allow_draft?: boolean
+          p_fan: string
+          p_plays: Json
+          p_quest: string
+        }
         Returns: Json
       }
       channel_stats: { Args: { p_channel: string }; Returns: Json }

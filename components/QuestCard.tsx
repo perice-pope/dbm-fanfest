@@ -7,7 +7,7 @@ import { REJECT_REASONS, type QuestView } from "@/lib/quest-state";
 
 const CTA: Record<string, string> = {
   daily_visit: "Awarded on Arrival", visit_link: "Check It Out Now", invite: "Invite", quiz: "Play Now", poll: "Respond", weekly_vote: "Vote",
-  photo_proof: "Submit Proof", receipt_proof: "Submit Proof", social_link: "Submit Link", social_screenshot: "Submit Proof", email_signup: "Join the List",
+  photo_proof: "Submit Proof", receipt_proof: "Submit Proof", social_link: "Submit Link", social_screenshot: "Submit Proof", email_signup: "Join the List", listen: "Connect & Stream",
 };
 
 function titleCase(s: string) {
