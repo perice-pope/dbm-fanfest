@@ -41,13 +41,14 @@ test("uploads: feature, hide, remove reverses XP", async ({ page }) => {
   await signIn(page, ADMIN, `/${SLUG}/admin/uploads`);
   const tile = page.locator("article").filter({ hasText: "Moth on a lamp" });
   await tile.getByRole("button", { name: "Feature" }).click();
-  await expect(tile.getByText("Featured")).toBeVisible();
+  // Each step is a server action plus a router refresh; production round trips can pass the default 5 s.
+  await expect(tile.getByText("Featured")).toBeVisible({ timeout: 15_000 });
   await tile.getByRole("button", { name: "Hide" }).click();
-  await expect(tile.getByText("Hidden")).toBeVisible();
+  await expect(tile.getByText("Hidden")).toBeVisible({ timeout: 15_000 });
   expect(await fanXp(FAN1)).toBe(before);
   page.once("dialog", (d) => d.accept());
   await tile.getByRole("button", { name: "Remove" }).click();
-  await expect(tile.getByText("Removed")).toBeVisible();
+  await expect(tile.getByText("Removed")).toBeVisible({ timeout: 15_000 });
   expect(await fanXp(FAN1)).toBe(before - 250);
 });
 
