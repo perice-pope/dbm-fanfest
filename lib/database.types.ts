@@ -893,6 +893,58 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_can_see_fan: { Args: { p_fan: string }; Returns: boolean }
+      admin_channel_fan_count: { Args: { p_channel: string }; Returns: number }
+      admin_channel_fans: {
+        Args: { p_channel: string; p_limit?: number; p_q?: string }
+        Returns: {
+          created_at: string
+          display_name: string | null
+          email: string
+          handles: Json
+          id: string
+          last_seen_at: string | null
+          newsletter_opt_in: boolean
+          normalized_email: string
+          referral_code: string
+          show_activity: boolean
+          show_on_leaderboard: boolean
+          status: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "fans"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      admin_rewards: {
+        Args: { p_channel: string }
+        Returns: {
+          body: string | null
+          channel_id: string
+          created_at: string
+          delivery_payload: string | null
+          delivery_type: string
+          draw_ends_at: string | null
+          id: string
+          image_url: string | null
+          min_lifetime_xp: number
+          picked_at: string | null
+          sort_order: number
+          status: string
+          stock: number | null
+          title: string
+          type: string
+          winner_fan_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "rewards"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       approve_submission: { Args: { p_id: string }; Returns: Json }
       assert_fan: {
         Args: { p_fan: string }
@@ -941,6 +993,10 @@ export type Database = {
         Returns: Json
       }
       enter_draw: { Args: { p_reward: string }; Returns: Json }
+      fan_active_in_channel: {
+        Args: { p_channel: string; p_fan: string }
+        Returns: boolean
+      }
       fan_total_xp: {
         Args: { p_channel: string; p_fan: string }
         Returns: number
@@ -965,8 +1021,18 @@ export type Database = {
         Args: { p_action: string; p_id: string; p_reason?: string }
         Returns: Json
       }
+      my_claims: {
+        Args: { p_channel: string }
+        Returns: {
+          created_at: string
+          delivery_payload: string
+          delivery_type: string
+          reward_id: string
+        }[]
+      }
       my_rank: { Args: { p_channel: string; p_period: string }; Returns: Json }
       normalize_email: { Args: { p_email: string }; Returns: string }
+      normalize_social_link: { Args: { p_url: string }; Returns: string }
       period_key_for: {
         Args: { p_at?: string; p_item?: string; p_rule: string; p_tz: string }
         Returns: string

@@ -5,7 +5,7 @@ export default async function PrivacyPage({ params }: { params: Promise<{ channe
   const { channel: slug } = await params;
   const { fan } = await getViewer();
   return (
-    <div className="mx-auto max-w-md space-y-4">
+    <div className="mx-auto max-w-md space-y-4 px-[24px] pt-[24px]">
       <h2 className="display text-4xl">Privacy settings</h2>
       <div className="card space-y-3 p-5 text-sm text-muted">
         <p>This page sets only the cookies it needs: one to keep you signed in and one to remember who invited you, for 30 days. No advertising or tracking cookies.</p>

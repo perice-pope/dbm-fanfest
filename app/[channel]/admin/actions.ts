@@ -7,14 +7,31 @@ import { requireAdmin, str, num, bool } from "./_lib";
 import type { ActionResult } from "@/app/[channel]/actions";
 import type { Json } from "@/lib/database.types";
 
+/** Images may only come from our storage or our own site; anything else breaks next/image. */
+function imageHostOk(url: string) {
+  if (!url) return true;
+  try {
+    const u = new URL(url);
+    if (u.protocol !== "https:") return false;
+    const own = process.env.NEXT_PUBLIC_SITE_URL ? new URL(process.env.NEXT_PUBLIC_SITE_URL).hostname : "";
+    return /\.supabase\.(co|in)$/.test(u.hostname) || u.hostname === "dbm-fanfest.vercel.app" || u.hostname === own;
+  } catch {
+    return false;
+  }
+}
+
+function timezoneOk(tz: string) {
+  try { new Intl.DateTimeFormat("en-US", { timeZone: tz }); return true; } catch { return false; }
+}
+
 function back(slug: string, path = "") {
   revalidatePath(`/${slug}`);
   revalidatePath(`/${slug}/admin${path}`);
 }
 
 export async function approve(slug: string, id: string): Promise<ActionResult<{ awarded: boolean; xp: number; already?: boolean }>> {
+  await requireAdmin(slug);
   try {
-    await requireAdmin(slug);
     const sb = await createClient();
     const { data, error } = await sb.rpc("approve_submission", { p_id: id });
     if (error) throw error;
@@ -24,8 +41,8 @@ export async function approve(slug: string, id: string): Promise<ActionResult<{ 
 }
 
 export async function reject(slug: string, id: string, reason: string, note: string, mode: "retry" | "final"): Promise<ActionResult<null>> {
+  await requireAdmin(slug);
   try {
-    await requireAdmin(slug);
     const sb = await createClient();
     const { error } = await sb.rpc("reject_submission", { p_id: id, p_reason: reason, p_note: note, p_mode: mode });
     if (error) throw error;
@@ -35,8 +52,8 @@ export async function reject(slug: string, id: string, reason: string, note: str
 }
 
 export async function moderate(slug: string, id: string, action: "feature" | "unfeature" | "hide" | "unhide" | "remove", reason?: string): Promise<ActionResult<null>> {
+  await requireAdmin(slug);
   try {
-    await requireAdmin(slug);
     const sb = await createClient();
     const { error } = await sb.rpc("moderate_upload", { p_id: id, p_action: action, p_reason: reason ?? undefined });
     if (error) throw error;
@@ -65,6 +82,13 @@ export async function saveQuest(slug: string, id: string | null, fd: FormData) {
     sort_order: Math.round(num(fd, "sort_order")),
     config: config as Json,
   };
+  const answerText = str(fd, "quiz_answers");
+  const answers = answerText ? answerText.split(/[,\s]+/).filter(Boolean).map(Number) : [];
+  if (row.type === "quiz") {
+    const qs = Array.isArray((config as { questions?: unknown }).questions) ? ((config as { questions: { options?: unknown[] }[] }).questions) : [];
+    const keyed = answers.length === qs.length && answers.every((a, i) => Number.isInteger(a) && a >= 0 && a < (qs[i]?.options?.length ?? 0));
+    if (!keyed || (row.status === "live" && qs.length === 0)) redirect(`/${slug}/admin/quests/${id ?? "new"}?error=quiz`);
+  }
   let questId = id;
   if (id) {
     const { error } = await sb.from("quests").update(row).eq("id", id).eq("channel_id", channel.id);
@@ -74,11 +98,7 @@ export async function saveQuest(slug: string, id: string | null, fd: FormData) {
     if (error || !data) redirect(`/${slug}/admin/quests/new?error=${encodeURIComponent(error?.message ?? "insert")}`);
     questId = data.id;
   }
-  const answers = str(fd, "quiz_answers");
-  if (row.type === "quiz" && answers) {
-    const arr = answers.split(/[,\s]+/).filter(Boolean).map((n) => Number(n));
-    if (arr.every((n) => Number.isInteger(n) && n >= 0)) await sb.rpc("set_quiz_answers", { p_quest: questId!, p_answers: arr });
-  }
+  if (row.type === "quiz") await sb.rpc("set_quiz_answers", { p_quest: questId!, p_answers: answers });
   back(slug, "/quests");
   revalidatePath(`/${slug}/q/${questId}`);
   redirect(`/${slug}/admin/quests?saved=1`);
@@ -111,6 +131,7 @@ export async function moveQuest(slug: string, id: string, dir: -1 | 1) {
 export async function saveNews(slug: string, id: string | null, fd: FormData) {
   const { channel } = await requireAdmin(slug);
   const sb = await createClient();
+  if (!imageHostOk(str(fd, "image_url"))) redirect(`/${slug}/admin/news?error=image_host`);
   const row = {
     channel_id: channel.id, title: str(fd, "title"), body: str(fd, "body") || null, image_url: str(fd, "image_url") || null,
     link_url: str(fd, "link_url") || null, link_label: str(fd, "link_label") || null, sort_order: Math.round(num(fd, "sort_order")), is_active: bool(fd, "is_active"),
@@ -132,6 +153,7 @@ export async function saveReward(slug: string, id: string | null, fd: FormData) 
   const { channel } = await requireAdmin(slug);
   const sb = await createClient();
   const stock = str(fd, "stock");
+  if (!imageHostOk(str(fd, "image_url"))) redirect(`/${slug}/admin/rewards?error=image_host`);
   const row = {
     channel_id: channel.id, type: str(fd, "type") as "claim" | "draw", title: str(fd, "title"), body: str(fd, "body") || null, image_url: str(fd, "image_url") || null,
     stock: stock === "" ? null : Math.max(0, Math.round(Number(stock))), delivery_type: (str(fd, "delivery_type") || "text") as "text" | "code" | "link", delivery_payload: str(fd, "delivery_payload") || null,
@@ -145,8 +167,8 @@ export async function saveReward(slug: string, id: string | null, fd: FormData) 
 }
 
 export async function pickWinner(slug: string, id: string): Promise<ActionResult<null>> {
+  await requireAdmin(slug);
   try {
-    await requireAdmin(slug);
     const sb = await createClient();
     const { error } = await sb.rpc("pick_winner", { p_reward: id });
     if (error) throw error;
@@ -174,6 +196,7 @@ export async function setFanStatus(slug: string, fanId: string, status: "active"
 export async function saveSettings(slug: string, fd: FormData) {
   const { channel } = await requireAdmin(slug);
   const sb = await createClient();
+  if (!timezoneOk(str(fd, "timezone") || channel.timezone)) redirect(`/${slug}/admin/settings?error=timezone`);
   const settings = { ...(channel.settings as Record<string, unknown>) };
   settings.merch_store_name = str(fd, "merch_store_name") || null;
   settings.review_cadence = str(fd, "review_cadence") || null;

@@ -1,8 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { getChannel, getViewer, isAdminOf, settingsOf } from "@/lib/data";
+import { getChannelFigures, compact, linksOf } from "@/lib/channel-view";
 import { ToastProvider, XpFromQuery } from "@/components/Toast";
+import { JoinModalProvider } from "@/components/JoinModal";
+import { StatusBar } from "@/components/StatusBar";
+import { BottomNav, SocialRow, navItems } from "@/components/BottomNav";
+import { ChatBar } from "@/components/ChatBar";
 import { signOut } from "@/app/[channel]/actions";
 
 export async function generateMetadata({ params }: { params: Promise<{ channel: string }> }): Promise<Metadata> {
@@ -16,55 +22,96 @@ export default async function ChannelLayout({ children, params }: { children: Re
   const channel = await getChannel(slug);
   if (!channel) notFound();
   const { fan } = await getViewer();
-  const admin = fan ? await isAdminOf(channel.id) : false;
-  const theme = settingsOf(channel).theme ?? {};
+  const [admin, figures] = await Promise.all([fan ? isAdminOf(channel.id) : Promise.resolve(false), getChannelFigures(channel, !!fan)]);
+  const settings = settingsOf(channel);
+  const links = linksOf(channel);
+  const theme = settings.theme ?? {};
   const style = {
-    ...(theme.accent ? { "--accent": theme.accent } : {}),
-    ...(theme.bg ? { "--bg": theme.bg } : {}),
-    ...(theme.surface ? { "--surface": theme.surface } : {}),
-    ...(theme.text ? { "--text": theme.text } : {}),
+    ...(theme.accent ? { "--accent": theme.accent, "--band": theme.accent, "--bg-top": theme.accent } : {}),
+    ...(theme.bg ? { "--bg-bottom": theme.bg, "--section-dark": theme.bg } : {}),
   } as React.CSSProperties;
+  const hero = channel.hero_url || "/dbm/banner.png";
+  const logo = channel.logo_url || "/dbm/logo.png";
+  const avatar = settings.avatar_url || "/dbm/avatar.jpg";
+  const nav = navItems(slug, links);
+  const signInHref = `/${slug}/sign-in`;
 
   return (
     <ToastProvider>
-      <div style={style} className="flex min-h-full flex-1 flex-col bg-bg text-text">
-        <header className="mx-auto w-full max-w-6xl px-4 pt-5 sm:pt-8">
-          <div className="flex items-start justify-between gap-4">
-            <Link href={`/${slug}`} className="min-w-0">
-              <h1 className="display text-4xl leading-[0.9] sm:text-6xl">{channel.name}</h1>
-              {channel.tagline && <p className="mt-1 text-sm text-muted">{channel.tagline}</p>}
-            </Link>
-            <div className="flex shrink-0 items-center gap-2">
-              {fan ? (
-                <Link href={`/${slug}/account`} className="flex items-center gap-2 rounded-full border border-line bg-surface py-1.5 pl-1.5 pr-3 text-sm hover:bg-surface-2" aria-label="Account">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent text-xs font-bold uppercase text-accent-ink">{(fan.display_name ?? fan.email).slice(0, 1)}</span>
-                  <span className="max-w-[9rem] truncate">{fan.display_name ?? "Set your name"}</span>
-                </Link>
-              ) : (
-                <>
-                  <Link href={`/${slug}/sign-in?mode=signup`} className="btn btn-primary px-3 text-base">Sign up</Link>
-                  <Link href={`/${slug}/sign-in`} className="btn btn-secondary px-3 text-base">Sign in</Link>
-                </>
-              )}
+      <JoinModalProvider slug={slug} name={channel.name} avatar={avatar}>
+        <div style={style} className="flex min-h-full flex-1 flex-col pb-[96px] text-white">
+          <StatusBar />
+          {/* Nav band: logo centred, page links left on desktop, social icons right on desktop and under the logo on phones */}
+          <div className="bg-band">
+            <div className="relative mx-auto h-[152px] max-w-[1440px] lg:h-[150px]">
+              <ul className="absolute left-[133px] top-[110px] hidden items-center gap-[32px] text-[16px] leading-none tracking-[0.5px] lg:flex" aria-label="Pages">
+                {nav.map((it) => <li key={it.label}>{it.external ? <a href={it.href}>{it.label}</a> : <Link href={it.href}>{it.label}</Link>}</li>)}
+              </ul>
+              <Link href={`/${slug}`} className="absolute left-1/2 top-[24px] -translate-x-1/2" aria-label={channel.name}>
+                <Image src={logo} alt={channel.name} width={510} height={102} priority className="h-[40px] w-[200px] object-cover object-center lg:h-[102px] lg:w-[510px]" />
+              </Link>
+              <SocialRow links={links as Record<string, string | null | undefined>} className="absolute max-lg:left-1/2 max-lg:top-[66px] max-lg:-translate-x-1/2 lg:right-[148px] lg:top-[112px]" />
             </div>
           </div>
-          {!fan && <p className="mt-3 text-xs uppercase tracking-[0.14em] text-muted">Browsing anonymously</p>}
-        </header>
-        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-5 sm:py-8">{children}</main>
-        <footer className="mx-auto w-full max-w-6xl px-4 pb-10 pt-6 text-xs text-muted">
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-line pt-5">
-            <Link href={`/${slug}/privacy`} className="hover:text-text">Privacy settings</Link>
-            {fan && <Link href={`/${slug}/account`} className="hover:text-text">Account</Link>}
-            {admin && <Link href={`/${slug}/admin`} className="hover:text-text">Admin</Link>}
-            {settingsOf(channel).chat_url && <a href={settingsOf(channel).chat_url} className="hover:text-text">Chat</a>}
-            {fan && (
-              <form action={signOut.bind(null, slug)}><button type="submit" className="hover:text-text">Sign out</button></form>
-            )}
-            <span className="ml-auto">FanFest</span>
-          </div>
-        </footer>
-      </div>
-      <XpFromQuery />
+          {/* Banner header */}
+          <header className="relative h-[400px] overflow-hidden lg:h-[480px]">
+            <Image src={hero} alt="" fill priority sizes="100vw" className="object-cover object-center" />
+            <div className="relative mx-auto h-full max-w-[1440px]">
+              {fan ? (
+                <div className="absolute right-[24px] top-[24px] flex items-center gap-[12px] max-lg:gap-[8px]">
+                  <Link href={`/${slug}/account`} className="fig-btn-sm fig-btn-sm-ghost max-w-[140px] truncate px-[16px] max-lg:h-[36px] max-lg:px-[12px] max-lg:text-[14px]">{fan.display_name ?? "Account"}</Link>
+                  {admin && <Link href={`/${slug}/admin`} className="fig-btn-sm fig-btn-sm-ghost px-[16px] max-lg:h-[36px] max-lg:px-[12px] max-lg:text-[14px]">Admin</Link>}
+                  <form action={signOut.bind(null, slug)}><button type="submit" className="fig-btn-sm fig-btn-sm-white px-[16px] max-lg:h-[36px] max-lg:px-[12px] max-lg:text-[14px]">Sign Out</button></form>
+                </div>
+              ) : (
+                <div className="absolute inset-x-[24px] top-[24px] grid grid-cols-2 gap-[24px] lg:inset-x-auto lg:right-[24px] lg:flex lg:gap-[28px]">
+                  <Link href={`${signInHref}?mode=signup`} className="fig-btn-sm fig-btn-sm-ghost lg:w-[94px]">Sign Up</Link>
+                  <Link href={signInHref} className="fig-btn-sm fig-btn-sm-white lg:w-[94px]">Sign In</Link>
+                </div>
+              )}
+              <div className="absolute bottom-[21px] left-[24px] hidden h-[99px] w-[99px] overflow-hidden rounded-[7.5px] border border-muted bg-section-dark lg:block">
+                <Image src={avatar} alt="" fill sizes="99px" className="object-cover object-[50%_19%]" />
+              </div>
+              {/* Desktop: title + stats row beside the avatar. Phone: stacked block. */}
+              <div className="absolute bottom-[27px] left-[139px] hidden lg:block">
+                <h1 className="text-[48px] leading-none">{channel.name}</h1>
+                <div className="mt-[18px] flex items-center gap-[24px]">
+                  <span className="flex items-center">
+                    <span className="flex" aria-hidden="true">
+                      {[0, 1, 2].map((i) => <span key={i} className="avatar-icon -ml-[2px] first:ml-0"><i className="fa-solid fa-user-astronaut text-[16px]" /></span>)}
+                    </span>
+                    <span className="mono ml-[14px] text-[14px] leading-none">{fmtInt(figures.fans)} USERS</span>
+                  </span>
+                  <span className="flex items-center gap-[8px]"><i className="fa-solid fa-star text-[16px]" aria-hidden="true" /><span className="mono text-[16px] leading-none">{compact(figures.lifetimeXp)}</span></span>
+                  <span className="flex items-center gap-[8px]"><span className="inline-block h-[14px] w-[14px] rounded-full bg-green" aria-hidden="true" /><span className="mono text-[16px] leading-none">{figures.online} FAN{figures.online === 1 ? "" : "S"} ONLINE</span></span>
+                </div>
+              </div>
+              <div className="absolute bottom-[16px] left-[24px] lg:hidden">
+                <h1 className="text-[32px] leading-none">{channel.name}</h1>
+                <p className="mt-[20px] flex items-center gap-[10px]"><span className="inline-block h-[14px] w-[14px] rounded-full bg-green" aria-hidden="true" /><span className="mono text-[16px] leading-none">{figures.online} FAN{figures.online === 1 ? "" : "S"} ONLINE</span></p>
+                <p className="mt-[14px] flex items-center">
+                  <span className="flex" aria-hidden="true">{[0, 1, 2].map((i) => <span key={i} className="avatar-icon -ml-[2px] first:ml-0" style={{ width: 20, height: 20 }}><i className="fa-solid fa-user-astronaut text-[12px]" /></span>)}</span>
+                  <span className="mono ml-[12px] text-[16px] leading-none">{fmtInt(figures.fans)} USERS</span>
+                </p>
+                <p className="mt-[12px] flex items-center gap-[8px]"><i className="fa-solid fa-star text-[16px]" aria-hidden="true" /><span className="mono text-[16px] leading-none">{compact(figures.lifetimeXp)}</span></p>
+              </div>
+            </div>
+          </header>
+          <main className="flex-1">{children}</main>
+          <BottomNav items={nav} />
+          <footer className="mx-auto mt-[24px] flex max-w-[1440px] flex-wrap items-center gap-x-[20px] gap-y-2 px-[24px] text-[13px] text-white/60">
+            <Link href={`/${slug}/privacy`} className="hover:text-white">Privacy</Link>
+            {fan && <Link href={`/${slug}/account`} className="hover:text-white">Account</Link>}
+            {admin && <Link href={`/${slug}/admin`} className="hover:text-white">Admin</Link>}
+          </footer>
+          <ChatBar online={figures.online} href={settings.chat_url ?? null} />
+        </div>
+        <XpFromQuery />
+      </JoinModalProvider>
     </ToastProvider>
   );
+}
+
+function fmtInt(n: number) {
+  return new Intl.NumberFormat("en-US").format(n);
 }

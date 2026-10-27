@@ -21,7 +21,7 @@ export default async function QuestEdit({ params, searchParams }: { params: Prom
   return (
     <form action={saveQuest.bind(null, slug, isNew ? null : id)} className="card space-y-4 p-5">
       <h3 className="display text-2xl">{isNew ? "New quest" : "Edit quest"}</h3>
-      {error && <p className="text-sm text-danger">{error === "config" ? "Config must be valid JSON." : error}</p>}
+      {error && <p className="text-sm text-danger">{error === "config" ? "Config must be valid JSON." : error === "quiz" ? "A quiz needs one correct-answer index per question (each within that question's options), and cannot go live without them. Nothing was saved." : error}</p>}
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="text-sm">Type<select name="type" className="input mt-1" defaultValue={q?.type ?? "poll"}>{TYPES.map((t) => <option key={t}>{t}</option>)}</select></label>
         <label className="text-sm">Status<select name="status" className="input mt-1" defaultValue={q?.status ?? "live"}>{["draft", "live", "archived"].map((t) => <option key={t}>{t}</option>)}</select></label>

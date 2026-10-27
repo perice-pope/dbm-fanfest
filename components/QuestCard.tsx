@@ -1,68 +1,48 @@
 "use client";
-import { useState } from "react";
-import Link from "next/link";
-import { fmtXp, fmtDeadline } from "@/lib/format";
+import Image from "next/image";
+import { GatedLink } from "@/components/JoinModal";
+import { fmtEnds } from "@/lib/figma-format";
+import { fmtXp } from "@/lib/format";
 import { REJECT_REASONS, type QuestView } from "@/lib/quest-state";
 
 const CTA: Record<string, string> = {
-  daily_visit: "Awarded on arrival", visit_link: "Visit link", invite: "Invite", quiz: "Play", poll: "Respond", weekly_vote: "Respond",
-  photo_proof: "Submit proof", receipt_proof: "Submit proof", social_link: "Submit link", social_screenshot: "Submit proof", email_signup: "Join list",
+  daily_visit: "Awarded on Arrival", visit_link: "Check It Out Now", invite: "Invite", quiz: "Play Now", poll: "Respond", weekly_vote: "Vote",
+  photo_proof: "Submit Proof", receipt_proof: "Submit Proof", social_link: "Submit Link", social_screenshot: "Submit Proof", email_signup: "Join the List",
 };
 
-export function QuestCard({ view, slug, tz, signedIn }: { view: QuestView; slug: string; tz: string; signedIn: boolean }) {
-  const [open, setOpen] = useState(false);
-  const { quest, state, latest } = view;
-  const detailHref = `/${slug}/q/${quest.id}`;
-  const signInHref = `/${slug}/sign-in?next=${encodeURIComponent(detailHref)}`;
-  const cta = quest.cta_label ?? CTA[quest.type] ?? "Open";
-  const isStatusOnly = quest.type === "daily_visit";
-
-  let action: React.ReactNode;
-  if (state === "expired") action = <span className="label">Ended</span>;
-  else if (state === "locked") action = <span className="label">Locked · {fmtXp(quest.lock_min_xp)} XP</span>;
-  else if (state === "in_review") action = <span className="label">In review</span>;
-  else if (state === "completed") action = <span className="label border-success/40 text-success">{quest.type === "daily_visit" ? "Done today" : "Completed"}</span>;
-  else if (state === "rejected" && latest?.reject_mode === "final") action = <span className="label border-danger/40 text-danger">Closed</span>;
-  else if (isStatusOnly) action = <span className="label">{signedIn ? cta : "Sign in to earn"}</span>;
-  else if (!signedIn) action = <Link href={signInHref} className="btn btn-primary">{cta}</Link>;
-  else if (quest.type === "visit_link") action = <a href={`/go/${slug}/${quest.id}`} className="btn btn-primary">{cta}</a>;
-  else action = <Link href={detailHref} className="btn btn-primary">{state === "rejected" ? "Try again" : cta}</Link>;
-
-  return (
-    <article className={`card p-4 sm:p-5 ${state === "expired" || state === "locked" ? "opacity-70" : ""}`}>
-      <div className="flex items-start justify-between gap-3">
-        <span className="badge-xp">{fmtXp(quest.xp)} XP</span>
-        <button type="button" aria-expanded={open} aria-label="Quest details" className="rounded-full p-1 text-muted hover:text-text" onClick={() => setOpen((o) => !o)}>
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className={`transition-transform ${open ? "rotate-180" : ""}`}><path d="M5 8l5 5 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
-        </button>
-      </div>
-      <h3 className="display mt-3 text-2xl leading-none">{quest.title}</h3>
-      {quest.description && <p className="mt-2 text-sm text-muted">{quest.description}</p>}
-      {quest.deadline && state !== "expired" && <p className="mt-2 text-xs uppercase tracking-[0.12em] text-muted">Ends {fmtDeadline(quest.deadline, tz)}</p>}
-      {state === "rejected" && latest?.reject_reason && (
-        <p className="mt-2 text-sm text-danger">{REJECT_REASONS[latest.reject_reason] ?? "Not approved."}{latest.reject_note ? ` ${latest.reject_note}` : ""}{latest.reject_mode !== "final" && view.retryAllowed ? " You can try once more." : ""}</p>
-      )}
-      {open && (
-        <dl className="mt-3 grid grid-cols-2 gap-2 rounded-[var(--radius-sm)] bg-surface-2 p-3 text-xs text-muted">
-          <dt>Repeats</dt><dd className="text-text">{view.resetsLabel ?? "Once"}</dd>
-          <dt>Verified by</dt><dd className="text-text">{verifiedBy(quest.type, Boolean((quest.config as { auto_approve?: boolean })?.auto_approve))}</dd>
-          {quest.lock_min_xp > 0 && (<><dt>Unlocks at</dt><dd className="text-text">{fmtXp(quest.lock_min_xp)} lifetime XP</dd></>)}
-          {state === "in_review" && (<><dt>Status</dt><dd className="text-text">Waiting for the band</dd></>)}
-        </dl>
-      )}
-      <div className="mt-4 flex items-center justify-between gap-3">
-        <span className="text-xs text-muted">{view.resetsLabel ?? ""}</span>
-        {action}
-      </div>
-    </article>
-  );
+function titleCase(s: string) {
+  return s.replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-function verifiedBy(type: string, auto: boolean) {
-  switch (type) {
-    case "daily_visit": case "visit_link": case "email_signup": case "poll": case "weekly_vote": case "invite": return "The site, instantly";
-    case "quiz": return "Graded instantly";
-    case "photo_proof": return auto ? "Instant, reviewed after" : "The band, one tap";
-    default: return "The band, one tap";
-  }
+export function QuestCard({ view, slug, tz, signedIn, image, now }: { view: QuestView; slug: string; tz: string; signedIn: boolean; image: string; now: string }) {
+  const { quest, state, latest } = view;
+  const detailHref = `/${slug}/q/${quest.id}`;
+  const cta = quest.cta_label ? titleCase(quest.cta_label) : CTA[quest.type] ?? "Open";
+  const ended = quest.deadline ? new Date(quest.deadline) <= new Date(now) : false;
+  const line = quest.deadline && !ended ? fmtEnds(quest.deadline, tz) : view.resetsLabel ?? (ended ? "Ended" : "No end date");
+
+  let action: React.ReactNode;
+  if (state === "expired") action = <span className="fig-btn fig-btn-outline" aria-disabled="true">Ended</span>;
+  else if (state === "locked") action = <span className="fig-btn fig-btn-outline" aria-disabled="true">Unlocks at {fmtXp(quest.lock_min_xp)} XP</span>;
+  else if (state === "in_review") action = <span className="fig-btn fig-btn-outline" aria-disabled="true">In Review</span>;
+  else if (state === "completed") action = <span className="fig-btn fig-btn-outline" aria-disabled="true">{quest.type === "daily_visit" ? "Awarded on Arrival" : "Completed"}</span>;
+  else if (state === "rejected" && (latest?.reject_mode === "final" || !view.retryAllowed)) action = <span className="fig-btn fig-btn-outline" aria-disabled="true">Closed</span>;
+  else if (quest.type === "daily_visit") action = <span className="fig-btn fig-btn-outline" aria-disabled="true">Awarded on Arrival</span>;
+  else if (quest.type === "visit_link") action = <GatedLink href={`/go/${slug}/${quest.id}`} signedIn={signedIn} className="fig-btn">{cta}</GatedLink>;
+  else action = <GatedLink href={detailHref} signedIn={signedIn} className="fig-btn">{state === "rejected" ? "Try Again" : cta}</GatedLink>;
+
+  return (
+    <article className="fig-card relative h-[416px] w-[319px] shrink-0 p-[25px] lg:h-[422px] lg:w-[399px]">
+      <div className="relative h-[200px] w-[270px] overflow-hidden rounded-[8px] bg-section-dark lg:w-[350px]">
+        <Image src={image} alt="" fill className="object-cover" sizes="(min-width: 1024px) 350px, 270px" />
+        <span className="fig-badge absolute right-[20px] top-[18px] max-lg:right-[16px] max-lg:top-[17px]">{fmtXp(quest.xp)} XP</span>
+      </div>
+      <h3 className="mt-[7px] flex h-[40px] items-center text-[16px] leading-[20px] lg:mt-[10px] lg:h-[48px] lg:text-[20px] lg:leading-[24px]">
+        <span className="line-clamp-2">{quest.title}</span>
+      </h3>
+      <p className="mt-[9px] text-[16px] leading-none lg:mt-[25px]">{line}</p>
+      {state === "rejected" && latest?.reject_reason && <p className="sr-only">{REJECT_REASONS[latest.reject_reason]}</p>}
+      <div className="mt-[11px] w-[270px] lg:mt-[26px] lg:w-[352px]">{action}</div>
+    </article>
+  );
 }

@@ -7,11 +7,10 @@ export const dynamic = "force-dynamic";
 export default async function FansAdmin({ params, searchParams }: { params: Promise<{ channel: string }>; searchParams: Promise<{ q?: string }> }) {
   const { channel: slug } = await params;
   const { q = "" } = await searchParams;
-  await requireAdmin(slug);
+  const { channel } = await requireAdmin(slug);
   const sb = await createClient();
-  let query = sb.from("fans").select("id, display_name, email, status, created_at").order("created_at", { ascending: false }).limit(100);
-  if (q) query = query.or(`display_name.ilike.%${q.replace(/[%,]/g, "")}%,email.ilike.%${q.replace(/[%,]/g, "")}%`);
-  const { data: fans } = await query;
+  // Only fans who have done something in this channel; other channels' fans stay private.
+  const { data: fans } = await sb.rpc("admin_channel_fans", { p_channel: channel.id, p_q: q || undefined, p_limit: 100 });
   return (
     <div className="space-y-3">
       <form className="flex gap-2"><input name="q" className="input" placeholder="Search name or email" defaultValue={q} /><button className="btn btn-secondary">Search</button></form>

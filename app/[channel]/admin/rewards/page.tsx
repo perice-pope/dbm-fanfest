@@ -32,18 +32,21 @@ function RewardForm({ slug, r }: { slug: string; r: RewardRow | null }) {
   );
 }
 
-export default async function RewardsAdmin({ params }: { params: Promise<{ channel: string }> }) {
+export default async function RewardsAdmin({ params, searchParams }: { params: Promise<{ channel: string }>; searchParams: Promise<{ error?: string; saved?: string }> }) {
   const { channel: slug } = await params;
+  const { error, saved } = await searchParams;
   const { channel } = await requireAdmin(slug);
   const sb = await createClient();
   const [{ data: rewards }, { data: stats }, { data: claims }] = await Promise.all([
-    sb.from("rewards").select("*").eq("channel_id", channel.id).order("sort_order"),
+    sb.rpc("admin_rewards", { p_channel: channel.id }),
     sb.rpc("reward_stats", { p_channel: channel.id }),
     sb.from("reward_claims").select("reward_id, created_at, fans(display_name, email)").order("created_at", { ascending: false }).limit(300),
   ]);
   const statFor = (id: string) => ((stats ?? []) as RewardStat[]).find((s) => s.reward_id === id);
   return (
     <div className="grid gap-4 lg:grid-cols-2">
+      {error === "image_host" && <p className="text-sm text-danger lg:col-span-2">Image URLs must point at our storage or this site.</p>}
+      {saved && <p className="text-sm text-success lg:col-span-2">Saved.</p>}
       <div className="space-y-4">
         {(rewards ?? []).map((r) => {
           const s = statFor(r.id);

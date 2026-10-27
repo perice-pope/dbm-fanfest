@@ -10,7 +10,7 @@ test("daily visit pays once per day", async ({ page }) => {
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(/Destroyed by Moths/i);
   await expect(page.getByText(/\+150 XP · Daily visit/)).toBeVisible({ timeout: 15_000 });
   await page.reload();
-  await expect(page.locator("#quests article").filter({ hasText: "Daily visit reward" }).getByText("Done today")).toBeVisible();
+  await expect(page.locator("#quests article").filter({ hasText: "Daily visit reward" }).getByText("Awarded on Arrival")).toBeVisible();
   expect(await fanXp(FAN1)).toBe(150);
 });
 
@@ -113,8 +113,9 @@ test("fan art pays on upload; playlist proof waits for review", async ({ page })
 
 test("leaderboard and activity show the fan", async ({ page }) => {
   await signIn(page, FAN1);
-  await expect(page.getByRole("heading", { name: /Weekly leaderboard/ })).toBeVisible();
   const board = page.locator('section[aria-label="Leaderboard"]');
+  await board.getByRole("button", { name: "Weekly" }).click();
+  await expect(board.getByRole("heading", { name: /Weekly Leaderboard/ })).toBeVisible();
   await expect(board.getByText("Fan One")).toBeVisible();
   await expect(board.getByText("1,220").first()).toBeVisible();
   await expect(page.locator('section[aria-label="Recent activity"]').getByText("Fan One").first()).toBeVisible();

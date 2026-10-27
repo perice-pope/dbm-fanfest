@@ -1,49 +1,30 @@
-"use client";
-import { useState } from "react";
-import { fmtXp, timeAgo } from "@/lib/format";
-import type { FeedRow, Stats } from "@/lib/data";
+import { fmtPlusXp } from "@/lib/figma-format";
+import { compact } from "@/lib/channel-view";
+import { timeAgo } from "@/lib/format";
+import type { FeedRow } from "@/lib/data";
 
-const DAYS = ["M", "T", "W", "T", "F", "S", "S"];
-
-export function ActivityFeed({ feed, stats, todayIndex }: { feed: FeedRow[]; stats: Stats; todayIndex: number }) {
-  const [open, setOpen] = useState(false);
-  const max = Math.max(1, ...stats.days);
-  const shown = open ? feed : feed.slice(0, 5);
+export function ActivityFeed({ feed, monthXp, now }: { feed: FeedRow[]; monthXp: number; now: string }) {
+  const n = new Date(now);
   return (
-    <section id="activity" className="card p-4 sm:p-5" aria-label="Recent activity">
-      <h2 className="display text-2xl">Recent activity</h2>
-      <div className="mt-3 flex items-end justify-between gap-4">
-        <div>
-          <div className="display text-4xl text-accent">{fmtXp(stats.week_xp)}</div>
-          <div className="text-xs uppercase tracking-[0.12em] text-muted">XP earned by fans this week</div>
-        </div>
-        <div className="flex items-end gap-1.5" aria-label="XP by day this week">
-          {stats.days.map((v, i) => (
-            <div key={i} className="flex flex-col items-center gap-1">
-              <div className="w-3 rounded-sm bg-line" style={{ height: 28 }}>
-                <div className={`w-3 rounded-sm ${i === todayIndex ? "bg-accent" : "bg-muted"}`} style={{ height: Math.max(2, Math.round((v / max) * 28)), marginTop: 28 - Math.max(2, Math.round((v / max) * 28)) }} />
-              </div>
-              <span className={`text-[10px] ${i === todayIndex ? "text-accent" : "text-muted"}`}>{DAYS[i]}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-      <ul className="mt-4 divide-y divide-line">
-        {feed.length === 0 && <li className="py-5 text-center text-sm text-muted">No activity yet. Complete a quest to start the feed.</li>}
-        {shown.map((f) => (
-          <li key={f.id} className="flex items-center gap-3 py-2.5 text-sm">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-2 text-xs font-semibold uppercase">{f.display_name.slice(0, 1)}</span>
-            <span className="flex-1 truncate"><span className="font-medium">{f.display_name}</span> <span className="text-muted">{f.note ?? f.source.replace(/_/g, " ")}</span></span>
-            <span className="text-xs text-muted">{timeAgo(f.created_at)}</span>
-            <span className="badge-xp">+{fmtXp(f.xp)} XP</span>
+    <section id="activity" aria-label="Recent activity" className="fig-card h-[371px] overflow-hidden px-[16px] pt-[20px]">
+      <h2 className="text-[24px] leading-none lg:text-[32px]">Recent Activity</h2>
+      <p className="mt-[22px] flex items-baseline gap-[12px] pl-[3px]">
+        <span className="text-[24px] leading-none">{compact(monthXp)} xp</span>
+        <span className="text-[16px] leading-none">earned by fans this month</span>
+      </p>
+      <ul className="mt-[14px] max-h-[220px] overflow-y-auto [scrollbar-width:none]">
+        {feed.length === 0 && <li className="py-[20px] text-[16px]">No activity yet. Complete a quest to start the feed.</li>}
+        {feed.map((f) => (
+          <li key={f.id} className="flex h-[73px] items-center border-b border-hairline last:border-b-0">
+            <span className="fan-avatar ml-[9px] mr-[26px]" aria-hidden="true"><i className="fa-solid fa-user-astronaut text-[20px]" /><i className="fa-solid fa-flag fan-flag" /></span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[16px] leading-none">{f.display_name}</span>
+              <span className="mt-[6px] block truncate text-[16px] leading-none">{(f.note ?? f.source.replace(/_/g, " ")).replace(/^Daily visit reward$/i, "checked in")} {timeAgo(f.created_at, n)}</span>
+            </span>
+            <span className="ml-[12px] shrink-0 text-[24px] leading-none max-lg:text-[16px]">{fmtPlusXp(f.xp)}</span>
           </li>
         ))}
       </ul>
-      {feed.length > 5 && (
-        <button type="button" className="mt-2 w-full text-xs uppercase tracking-[0.12em] text-muted hover:text-text" onClick={() => setOpen((o) => !o)}>
-          {open ? "Show less" : `Show all ${feed.length}`}
-        </button>
-      )}
     </section>
   );
 }

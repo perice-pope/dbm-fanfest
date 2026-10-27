@@ -1,20 +1,27 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Bebas_Neue } from "next/font/google";
+import { Hanken_Grotesk, Atkinson_Hyperlegible_Mono } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
-const display = Bebas_Neue({ variable: "--font-display", subsets: ["latin"], weight: "400" });
+const hanken = Hanken_Grotesk({ variable: "--font-hanken", subsets: ["latin"], weight: ["400", "700"] });
+const atkinson = Atkinson_Hyperlegible_Mono({ variable: "--font-atkinson", subsets: ["latin"], weight: ["400"] });
 
 export const metadata: Metadata = {
-  title: { default: "FanFest", template: "%s FanFest" },
-  description: "Fans compete, vote and unlock rewards.",
+  title: { default: "Destroyed by Moths FanFest", template: "%s FanFest" },
+  description: "Earn XP, climb the leaderboard, unlock rewards.",
 };
 
-export const viewport: Viewport = { themeColor: "#0b0b0f", width: "device-width", initialScale: 1 };
+export const viewport: Viewport = { themeColor: "#8d3d34", width: "device-width", initialScale: 1 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${inter.variable} ${display.variable} h-full`}>
+    <html lang="en" className={`${hanken.variable} ${atkinson.variable} h-full`}>
+      <head>
+        {/* Icon fonts used in the Figma: Font Awesome 7 Free (solid + brands) and Material Icons Round / Sharp */}
+        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.1.0/css/all.min.css" crossOrigin="anonymous" referrerPolicy="no-referrer" />
+        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Icons+Round&family=Material+Icons+Sharp&display=block" />
+      </head>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );

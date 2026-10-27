@@ -1,142 +1,112 @@
 @import "tailwindcss";
 
-/* Design tokens. Swap these for the Figma values; every component reads them. */
+/* Values come from the Figma file "DBM" (figma/inventory-*.md). Change them there first, then here. */
 :root {
-  --bg: #0b0b0f;
-  --surface: #15151c;
-  --surface-2: #1d1d26;
-  --line: #262632;
-  --text: #f3f1ec;
-  --muted: #9d9dac;
-  --accent: #f2b441;
-  --accent-ink: #15110a;
-  --danger: #ff6464;
-  --success: #62e0a4;
-  --radius: 16px;
-  --radius-sm: 10px;
+  --bg-top: #8d3d34;
+  --bg-bottom: #2f272a;
+  --band: #8d3d34;
+  --accent: #8d3d34;
+  --section-dark: #2f272a;
+  --section-quests: #7b3932;
+  --card: rgba(47, 39, 42, 0.5);
+  --card-stroke: #2f272a;
+  --card-stroke-2: #2e2e2e;
+  --chat: #181818;
+  --yellow: #ffca17;
+  --green: #3cff00;
+  --muted: #6c757d;
+  --text: #ffffff;
+  --statusbar: #2f272a;
+  --hairline: rgba(255, 255, 255, 0.12);
 }
 
 @theme inline {
-  --color-bg: var(--bg);
-  --color-surface: var(--surface);
-  --color-surface-2: var(--surface-2);
-  --color-line: var(--line);
   --color-text: var(--text);
   --color-muted: var(--muted);
   --color-accent: var(--accent);
-  --color-accent-ink: var(--accent-ink);
-  --color-danger: var(--danger);
-  --color-success: var(--success);
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-display), "Impact", "Arial Narrow", sans-serif;
-  --radius-card: var(--radius);
-  --radius-ctl: var(--radius-sm);
+  --color-band: var(--band);
+  --color-yellow: var(--yellow);
+  --color-green: var(--green);
+  --color-section-dark: var(--section-dark);
+  --color-section-quests: var(--section-quests);
+  --color-chat: var(--chat);
+  --color-card-stroke: var(--card-stroke);
+  --color-card-stroke-2: var(--card-stroke-2);
+  --color-hairline: var(--hairline);
+  --font-sans: var(--font-hanken), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-atkinson), ui-monospace, monospace;
 }
 
-html {
-  background: var(--bg);
-  color-scheme: dark;
-}
-
+html { color-scheme: dark; background: var(--bg-bottom); }
 body {
-  background: var(--bg);
+  min-height: 100%;
+  background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
   color: var(--text);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }
 
-.display {
-  font-family: var(--font-display);
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-  line-height: 0.95;
-}
+/* Cards: fill #2F272A at 50%, 1px stroke, radius 15.5 */
+.fig-card { background: var(--card); border: 1px solid var(--card-stroke); border-radius: 15.5px; }
+.fig-card-2 { background: var(--card); border: 1px solid var(--card-stroke-2); border-radius: 15.5px; }
 
-.card {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
+/* Buttons: 48px tall, radius 8, Hanken 24 on desktop and 16 on phones */
+.fig-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+  height: 48px; width: 100%; border-radius: 8px; background: var(--accent); color: #fff;
+  font-size: 24px; line-height: 1; white-space: nowrap;
 }
+.fig-btn-outline { background: transparent; border: 1px solid #fff; }
+.fig-btn-yellow { background: var(--yellow); color: #000; }
+.fig-btn-yellow-outline { background: transparent; border: 1px solid var(--yellow); color: var(--yellow); }
+.fig-btn[disabled], .fig-btn[aria-disabled="true"] { opacity: 0.6; pointer-events: none; }
+@media (max-width: 1023px) { .fig-btn { font-size: 16px; } }
 
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  min-height: 44px;
-  padding: 0 1.1rem;
-  border-radius: var(--radius-sm);
-  font-family: var(--font-display);
-  font-size: 1.05rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  transition: transform 120ms ease, opacity 120ms ease, background 120ms ease;
-  white-space: nowrap;
-}
-.btn:active { transform: translateY(1px); }
-.btn-primary { background: var(--accent); color: var(--accent-ink); }
-.btn-primary:hover { filter: brightness(1.06); }
-.btn-secondary { background: transparent; color: var(--text); border: 1px solid var(--line); }
-.btn-secondary:hover { background: var(--surface-2); }
-.btn-ghost { background: transparent; color: var(--muted); }
-.btn[disabled], .btn[aria-disabled="true"] { opacity: 0.45; pointer-events: none; }
+/* Small white sign-in buttons in the header: 45px tall, radius 8 */
+.fig-btn-sm { display: inline-flex; align-items: center; justify-content: center; height: 45px; border-radius: 8px; font-size: 16px; line-height: 1; }
+.fig-btn-sm-white { background: #fff; color: #000; }
+.fig-btn-sm-ghost { background: transparent; color: #fff; border: 1px solid #fff; }
 
-.badge-xp {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.2rem 0.6rem;
-  border-radius: 999px;
-  background: var(--accent);
-  color: var(--accent-ink);
-  font-family: var(--font-display);
-  font-size: 0.95rem;
-  letter-spacing: 0.06em;
-}
+/* Chips (news tags): 33px tall, radius 7.5, mono 12px uppercase */
+.fig-chip { display: inline-flex; align-items: center; height: 33px; padding: 0 26px; border-radius: 7.5px; background: var(--section-dark); border: 1px solid var(--accent); font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.01em; text-transform: uppercase; color: #fff; white-space: nowrap; }
 
-.label {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.25rem 0.6rem;
-  border-radius: 999px;
-  border: 1px solid var(--line);
-  color: var(--muted);
-  font-size: 0.72rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
+/* XP badge on cards: 91x31, radius 7.5, mono 16 */
+.fig-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 91px; height: 31px; padding: 0 12px; border-radius: 7.5px; background: var(--section-dark); border: 1px solid var(--accent); font-family: var(--font-mono); font-size: 16px; color: #fff; white-space: nowrap; }
 
-.input {
-  width: 100%;
-  min-height: 46px;
-  padding: 0 0.9rem;
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
-  border: 1px solid var(--line);
-  color: var(--text);
-  outline: none;
-}
-.input:focus { border-color: var(--accent); }
+/* Segmented control: 50px pill, accent track, dark active tab */
+.fig-seg { display: grid; grid-template-columns: repeat(3, 1fr); height: 50px; border-radius: 25px; background: var(--accent); }
+.fig-seg button { border-radius: 25px; font-size: 16px; color: #fff; }
+.fig-seg button[aria-pressed="true"] { background: var(--section-dark); }
+
+.mono { font-family: var(--font-mono); }
+.mi-round { font-family: "Material Icons Round"; font-weight: normal; font-style: normal; line-height: 1; letter-spacing: normal; text-transform: none; display: inline-block; white-space: nowrap; direction: ltr; -webkit-font-feature-settings: "liga"; font-feature-settings: "liga"; }
+.mi-sharp { font-family: "Material Icons Sharp"; font-weight: normal; font-style: normal; line-height: 1; letter-spacing: normal; text-transform: none; display: inline-block; white-space: nowrap; direction: ltr; -webkit-font-feature-settings: "liga"; font-feature-settings: "liga"; }
+
+/* Fan avatar on rows: 43px white-stroked circle with a faint fill, astronaut glyph, small white flag badge */
+.fan-avatar { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 43px; height: 43px; flex-shrink: 0; border-radius: 999px; border: 1px solid #fff; background: rgba(255, 255, 255, 0.047); }
+.fan-flag { position: absolute; right: -4px; bottom: -2px; display: inline-flex; align-items: center; justify-content: center; width: 23px; height: 23px; border-radius: 999px; background: #fff; color: #000; font-size: 11px; }
+.avatar-icon { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 999px; background: #fff; color: #000; }
+.rail { display: flex; gap: 25px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; padding-bottom: 2px; }
+.rail::-webkit-scrollbar { display: none; }
+.rail > * { scroll-snap-align: start; }
+
+/* Legacy classes still used by the quest detail, sign-in and admin pages */
+.card { background: var(--card); border: 1px solid var(--card-stroke); border-radius: 15.5px; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; min-height: 48px; padding: 0 1.1rem; border-radius: 8px; font-size: 16px; white-space: nowrap; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-secondary { background: transparent; color: #fff; border: 1px solid #fff; }
+.btn-ghost { background: transparent; color: #fff; opacity: 0.85; }
+.btn[disabled], .btn[aria-disabled="true"] { opacity: 0.5; pointer-events: none; }
+.input { width: 100%; min-height: 46px; padding: 0 0.9rem; border-radius: 8px; background: var(--section-dark); border: 1px solid var(--card-stroke-2); color: #fff; outline: none; }
+.input:focus { border-color: #fff; }
 textarea.input { padding: 0.7rem 0.9rem; min-height: 90px; }
-
-.seg {
-  display: inline-flex;
-  padding: 3px;
-  border-radius: 999px;
-  background: var(--surface-2);
-  border: 1px solid var(--line);
-}
-.seg button {
-  padding: 0.35rem 0.9rem;
-  border-radius: 999px;
-  font-size: 0.78rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
-
-@keyframes toast-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-.toast { animation: toast-in 180ms ease-out; }
-
+.label { display: inline-flex; align-items: center; padding: 0.25rem 0.6rem; border-radius: 999px; border: 1px solid var(--card-stroke-2); color: #fff; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; }
+.badge-xp { display: inline-flex; align-items: center; padding: 0.2rem 0.6rem; border-radius: 999px; background: var(--accent); color: #fff; font-family: var(--font-mono); font-size: 14px; }
+.seg { display: inline-flex; padding: 3px; border-radius: 999px; background: var(--section-dark); border: 1px solid var(--card-stroke-2); }
+.seg button { padding: 0.35rem 0.9rem; border-radius: 999px; font-size: 13px; color: #fff; }
+.seg button[aria-pressed="true"] { background: var(--accent); }
+.display { font-family: var(--font-sans); }
 .scrollbar-none::-webkit-scrollbar { display: none; }
 .scrollbar-none { scrollbar-width: none; }
+@keyframes toast-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+.toast { animation: toast-in 180ms ease-out; }

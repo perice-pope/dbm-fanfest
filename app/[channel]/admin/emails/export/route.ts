@@ -9,7 +9,11 @@ export async function GET(_req: Request, { params }: { params: Promise<{ channel
   if (!channel || !fan || !(await isAdminOf(channel.id))) return new NextResponse("Forbidden", { status: 403 });
   const sb = await createClient();
   const { data: rows } = await sb.from("email_signups").select("email, consented_at, fans(display_name, newsletter_opt_in)").eq("channel_id", channel.id).order("consented_at");
-  const esc = (s: string) => `"${s.replace(/"/g, '""')}"`;
+  // A leading = + - @ tab or CR would run as a formula in a spreadsheet; neutralise it.
+  const esc = (s: string) => {
+    const safe = /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
+    return `"${safe.replace(/"/g, '""')}"`;
+  };
   const lines = ["email,name,opted_in_at,source"];
   for (const r of rows ?? []) {
     const f = r.fans as { display_name: string | null; newsletter_opt_in: boolean } | null;

@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { friendlyError } from "@/lib/errors";
 import { normalizeSocialLink } from "@/lib/links";
 import { requestOrigin } from "@/lib/site";
+import { safeNext } from "@/lib/safe-next";
 
 export type ActionResult<T> = { ok: true; data: T } | { ok: false; error: string };
 
@@ -156,11 +157,6 @@ async function siteUrl() {
   return requestOrigin();
 }
 
-function safeNext(slug: string, next: string | null | undefined) {
-  if (next && next.startsWith("/") && !next.startsWith("//")) return next;
-  return `/${slug}`;
-}
-
 export async function sendCode(slug: string, email: string, next?: string): Promise<ActionResult<null>> {
   try {
     const parsed = z.string().trim().email("Enter a valid email.").parse(email);
@@ -168,7 +164,7 @@ export async function sendCode(slug: string, email: string, next?: string): Prom
     const base = await siteUrl();
     const { error } = await sb.auth.signInWithOtp({
       email: parsed,
-      options: { shouldCreateUser: true, emailRedirectTo: `${base}/auth/confirm?next=${encodeURIComponent(safeNext(slug, next))}` },
+      options: { shouldCreateUser: true, emailRedirectTo: `${base}/auth/confirm?next=${encodeURIComponent(safeNext(slug, next, base))}` },
     });
     if (error) throw error;
     return { ok: true, data: null };
@@ -189,7 +185,7 @@ export async function verifyCode(slug: string, email: string, token: string, nex
     const { data: { user } } = await sb.auth.getUser();
     const { data: fan } = await sb.from("fans").select("display_name").eq("id", user!.id).maybeSingle();
     const needsName = !fan?.display_name;
-    const dest = safeNext(slug, next);
+    const dest = safeNext(slug, next, await siteUrl());
     return { ok: true, data: { next: needsName ? `/${slug}/account?first=1&next=${encodeURIComponent(dest)}` : dest, needsName } };
   } catch (e) {
     return { ok: false, error: friendlyError(e) };

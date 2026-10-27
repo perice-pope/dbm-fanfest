@@ -12,7 +12,7 @@ export default async function AdminLayout({ children, params }: { children: Reac
   const sb = await createClient();
   const { count } = await sb.from("submissions").select("id", { count: "exact", head: true }).eq("channel_id", channel.id).eq("status", "pending");
   return (
-    <div className="space-y-5">
+    <div className="mx-auto max-w-[1440px] space-y-5 px-[24px] pt-[24px]">
       <div className="flex items-center justify-between">
         <h2 className="display text-3xl">Admin</h2>
         <span className="text-xs text-muted">{channel.name}</span>

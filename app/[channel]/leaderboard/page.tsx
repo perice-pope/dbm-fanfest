@@ -23,7 +23,7 @@ export default async function LeaderboardPage({ params, searchParams }: { params
   const list = (rows ?? []) as BoardRow[];
   const me = mine as MyRank;
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-2xl px-[24px] pt-[24px]">
       <div className="flex items-center justify-between gap-3">
         <h2 className="display text-4xl">Leaderboard</h2>
         <Link href={`/${slug}`} className="text-xs uppercase tracking-[0.12em] text-muted hover:text-text">Back</Link>

@@ -31,7 +31,7 @@ export default async function QuestPage({ params }: { params: Promise<{ channel:
   const origin = await requestOrigin();
 
   return (
-    <div className="mx-auto max-w-md">
+    <div className="mx-auto max-w-md px-[24px] pt-[24px]">
       <Link href={`/${slug}#quests`} className="text-xs uppercase tracking-[0.12em] text-muted hover:text-text">‹ Quests</Link>
       <div className="mt-3 flex items-center gap-3">
         <span className="badge-xp">{fmtXp(quest.xp)} XP</span>

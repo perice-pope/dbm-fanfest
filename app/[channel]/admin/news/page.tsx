@@ -24,13 +24,16 @@ function NewsForm({ slug, item }: { slug: string; item: { id: string; title: str
   );
 }
 
-export default async function NewsAdmin({ params }: { params: Promise<{ channel: string }> }) {
+export default async function NewsAdmin({ params, searchParams }: { params: Promise<{ channel: string }>; searchParams: Promise<{ error?: string; saved?: string }> }) {
   const { channel: slug } = await params;
+  const { error, saved } = await searchParams;
   const { channel } = await requireAdmin(slug);
   const sb = await createClient();
   const { data: items } = await sb.from("news_items").select("*").eq("channel_id", channel.id).order("sort_order");
   return (
     <div className="grid gap-4 lg:grid-cols-2">
+      {error === "image_host" && <p className="text-sm text-danger lg:col-span-2">Image URLs must point at our storage or this site.</p>}
+      {saved && <p className="text-sm text-success lg:col-span-2">Saved.</p>}
       <div className="space-y-4">
         {(items ?? []).map((n) => (
           <div key={n.id} className="space-y-2">

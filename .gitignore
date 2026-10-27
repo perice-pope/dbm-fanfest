@@ -32,6 +32,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
@@ -43,3 +44,14 @@ next-env.d.ts
 # test output
 test-results/
 playwright-report/
+figma/renders/
+figma/assets/
+figma/site/
+figma/compare/
+figma/*.json
+!figma/compare-map.json
+figma/frames/
+figma/assets-svg/
+figma/view/
+figma/*.svg
+figma/*.png

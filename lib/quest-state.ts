@@ -22,6 +22,7 @@ export type QuestConfig = {
   consent?: string;
   variant?: string;
   cap?: number;
+  image_url?: string;
 };
 
 export function configOf(q: Quest): QuestConfig {

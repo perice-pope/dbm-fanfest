@@ -13,7 +13,7 @@ export default async function AdminHome({ params }: { params: Promise<{ channel:
   const [pending, stats, fans, signups] = await Promise.all([
     sb.from("submissions").select("id", { count: "exact", head: true }).eq("channel_id", channel.id).eq("status", "pending"),
     sb.rpc("channel_stats", { p_channel: channel.id }),
-    sb.from("fans").select("id", { count: "exact", head: true }),
+    sb.rpc("admin_channel_fan_count", { p_channel: channel.id }),
     sb.from("email_signups").select("id", { count: "exact", head: true }).eq("channel_id", channel.id),
   ]);
   const s = stats.data as Stats | null;
@@ -21,7 +21,7 @@ export default async function AdminHome({ params }: { params: Promise<{ channel:
     { label: "Waiting for review", value: pending.count ?? 0, href: `/${slug}/admin/review` },
     { label: "XP this week", value: fmtXp(s?.week_xp ?? 0), href: `/${slug}` },
     { label: "Fans with XP", value: s?.fans ?? 0, href: `/${slug}/admin/fans` },
-    { label: "Accounts", value: fans.count ?? 0, href: `/${slug}/admin/fans` },
+    { label: "Fans in this channel", value: Number(fans.data ?? 0), href: `/${slug}/admin/fans` },
     { label: "Email list", value: signups.count ?? 0, href: `/${slug}/admin/emails` },
     { label: "Live quests", value: s?.quests ?? 0, href: `/${slug}/admin/quests` },
   ];

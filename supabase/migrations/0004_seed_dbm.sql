@@ -3,7 +3,7 @@
 insert into public.channels (slug, name, tagline, timezone, links, settings) values (
   'destroyedbymoths', 'Destroyed by Moths', 'Fans compete, vote and unlock rewards.', 'America/Los_Angeles',
   '{"spotify":"https://open.spotify.com/","instagram":"https://instagram.com/","tiktok":"https://tiktok.com/","merch":"https://example.com/store"}'::jsonb,
-  '{"merch_store_name":"Destroyed by Moths Store","review_cadence":"The band reviews these every few days.","submissions_per_day":10,"max_pending":5,"theme":{"accent":"#F2B441"}}'::jsonb
+  '{"merch_store_name":"Destroyed by Moths Store","review_cadence":"The band reviews these every few days.","submissions_per_day":10,"max_pending":5,"theme":{"accent":"#8d3d34","bg":"#2f272a"}}'::jsonb
 ) on conflict (slug) do nothing;
 
 do $$

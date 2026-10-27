@@ -13,6 +13,9 @@ export type MyRank = { hidden: boolean; rank: number | null; xp: number } | null
 export type FeedRow = { id: string; display_name: string; note: string | null; xp: number; source: string; created_at: string };
 export type Stats = { week_xp: number; days: number[]; fans: number; quests: number; news: number; rewards: number; week_start: string };
 export type RewardStat = { reward_id: string; claims: number; entries: number; winner_name: string | null };
+export type MyClaim = { reward_id: string; delivery_type: string; delivery_payload: string | null; created_at: string };
+/** Columns fans and visitors may read; delivery payloads and draw winners stay server-side. */
+export const PUBLIC_REWARD_COLUMNS = "id, channel_id, type, title, body, image_url, stock, delivery_type, draw_ends_at, picked_at, min_lifetime_xp, status, sort_order, created_at";
 export type Period = "weekly" | "monthly" | "lifetime";
 export const PERIODS: Period[] = ["weekly", "monthly", "lifetime"];
 
@@ -25,6 +28,7 @@ export type ChannelSettings = {
   theme?: ChannelTheme;
   show_header_counters?: boolean;
   chat_url?: string;
+  avatar_url?: string;
 };
 
 export function settingsOf(ch: Channel): ChannelSettings {
@@ -76,23 +80,28 @@ export async function getChannelHome(channel: Channel, fan: Fan | null) {
   const sb = await createClient();
   const boardCalls = PERIODS.map((p) => sb.rpc("leaderboard", { p_channel: channel.id, p_period: p, p_limit: 3, p_offset: 0 }));
   const rankCalls = fan ? PERIODS.map((p) => sb.rpc("my_rank", { p_channel: channel.id, p_period: p })) : [];
-  const [quests, news, rewards, rewardStats, feed, stats, boards, ranks, fanCtx] = await Promise.all([
+  const [quests, news, rewards, rewardStats, feed, stats, boards, ranks, fanCtx, claims] = await Promise.all([
     sb.from("quests").select("*").eq("channel_id", channel.id).eq("status", "live").order("sort_order", { ascending: true }),
     sb.from("news_items").select("*").eq("channel_id", channel.id).eq("is_active", true).order("sort_order", { ascending: true }).order("published_at", { ascending: false }),
-    sb.from("rewards").select("*").eq("channel_id", channel.id).in("status", ["live", "closed"]).order("sort_order", { ascending: true }),
+    sb.from("rewards").select(PUBLIC_REWARD_COLUMNS).eq("channel_id", channel.id).in("status", ["live", "closed"]).order("sort_order", { ascending: true }),
     sb.rpc("reward_stats", { p_channel: channel.id }),
     sb.rpc("activity_feed", { p_channel: channel.id, p_limit: 20 }),
     sb.rpc("channel_stats", { p_channel: channel.id }),
     Promise.all(boardCalls),
     Promise.all(rankCalls),
     getFanContext(channel, fan),
+    fan ? sb.rpc("my_claims", { p_channel: channel.id }) : Promise.resolve({ data: [] as MyClaim[] }),
   ]);
+  const myClaims = (claims.data ?? []) as MyClaim[];
+  const claimFor = new Map(myClaims.map((c) => [c.reward_id, c]));
   const boardMap = Object.fromEntries(PERIODS.map((p, i) => [p, (boards[i].data ?? []) as BoardRow[]])) as Record<Period, BoardRow[]>;
   const rankMap = Object.fromEntries(PERIODS.map((p, i) => [p, (ranks[i]?.data ?? null) as MyRank])) as Record<Period, MyRank>;
   return {
     quests: (quests.data ?? []) as Quest[],
     news: (news.data ?? []) as NewsItem[],
-    rewards: (rewards.data ?? []) as Reward[],
+    // Delivery details only exist on rewards this fan has claimed; everyone else sees null.
+    rewards: ((rewards.data ?? []) as Omit<Reward, "delivery_payload" | "winner_fan_id">[]).map((r) => ({ ...r, delivery_payload: claimFor.get(r.id)?.delivery_payload ?? null, winner_fan_id: null })) as Reward[],
+    myClaims,
     rewardStats: (rewardStats.data ?? []) as RewardStat[],
     feed: (feed.data ?? []) as FeedRow[],
     stats: (stats.data ?? { week_xp: 0, days: [0, 0, 0, 0, 0, 0, 0], fans: 0, quests: 0, news: 0, rewards: 0, week_start: "" }) as Stats,

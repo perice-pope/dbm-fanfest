@@ -19,7 +19,7 @@ export function AccountForm({ slug, next, fan }: { slug: string; next?: string; 
       const r = await updateProfile(slug, fd);
       if (!r.ok) return setError(r.error);
       push("Saved", "info");
-      if (next && next.startsWith("/")) router.replace(next); else router.refresh();
+      if (next && /^\/(?![/\\])/.test(next)) router.replace(next); else router.refresh();
     });
   }
   return (
