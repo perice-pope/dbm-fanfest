@@ -26,6 +26,11 @@ const MESSAGES: Record<string, string> = {
   DRAW_CLOSED: "This draw has closed.",
   FORBIDDEN: "You do not have permission to do that.",
   NOT_FOUND: "Not found.",
+  NAME_REQUIRED: "Pick a display name in your account first.",
+  EMPTY_MESSAGE: "Type a message first.",
+  TOO_LONG: "Keep it under 500 characters.",
+  SLOW_DOWN: "Slow down a little.",
+  DUPLICATE_MESSAGE: "You just said that.",
 };
 
 export function friendlyError(err: unknown): string {

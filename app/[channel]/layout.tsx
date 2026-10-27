@@ -8,7 +8,9 @@ import { ToastProvider, XpFromQuery } from "@/components/Toast";
 import { JoinModalProvider } from "@/components/JoinModal";
 import { StatusBar } from "@/components/StatusBar";
 import { BottomNav, SocialRow, navItems } from "@/components/BottomNav";
-import { ChatBar } from "@/components/ChatBar";
+import { Chat } from "@/components/Chat";
+import { createClient } from "@/lib/supabase/server";
+import { CHAT_PAGE, type ChatMessage } from "@/lib/chat";
 import { signOut } from "@/app/[channel]/actions";
 
 export async function generateMetadata({ params }: { params: Promise<{ channel: string }> }): Promise<Metadata> {
@@ -22,7 +24,12 @@ export default async function ChannelLayout({ children, params }: { children: Re
   const channel = await getChannel(slug);
   if (!channel) notFound();
   const { fan } = await getViewer();
-  const [admin, figures] = await Promise.all([fan ? isAdminOf(channel.id) : Promise.resolve(false), getChannelFigures(channel, !!fan)]);
+  const sb = await createClient();
+  const [admin, figures, chat] = await Promise.all([
+    fan ? isAdminOf(channel.id) : Promise.resolve(false),
+    getChannelFigures(channel, sb),
+    sb.rpc("chat_recent", { p_channel: channel.id, p_limit: CHAT_PAGE }),
+  ]);
   const settings = settingsOf(channel);
   const links = linksOf(channel);
   const theme = settings.theme ?? {};
@@ -83,12 +90,12 @@ export default async function ChannelLayout({ children, params }: { children: Re
                     <span className="mono ml-[14px] text-[14px] leading-none">{fmtInt(figures.fans)} USERS</span>
                   </span>
                   <span className="flex items-center gap-[8px]"><i className="fa-solid fa-star text-[16px]" aria-hidden="true" /><span className="mono text-[16px] leading-none">{compact(figures.lifetimeXp)}</span></span>
-                  <span className="flex items-center gap-[8px]"><span className="inline-block h-[14px] w-[14px] rounded-full bg-green" aria-hidden="true" /><span className="mono text-[16px] leading-none">{figures.online} FAN{figures.online === 1 ? "" : "S"} ONLINE</span></span>
+                  <span className="flex items-center gap-[8px]"><span className="inline-block h-[14px] w-[14px] rounded-full bg-green" aria-hidden="true" /><span className="mono text-[16px] leading-none" aria-label="Fans online">{figures.online} FAN{figures.online === 1 ? "" : "S"} ONLINE</span></span>
                 </div>
               </div>
               <div className="absolute bottom-[16px] left-[24px] lg:hidden">
                 <h1 className="text-[32px] leading-none">{channel.name}</h1>
-                <p className="mt-[20px] flex items-center gap-[10px]"><span className="inline-block h-[14px] w-[14px] rounded-full bg-green" aria-hidden="true" /><span className="mono text-[16px] leading-none">{figures.online} FAN{figures.online === 1 ? "" : "S"} ONLINE</span></p>
+                <p className="mt-[20px] flex items-center gap-[10px]"><span className="inline-block h-[14px] w-[14px] rounded-full bg-green" aria-hidden="true" /><span className="mono text-[16px] leading-none" aria-label="Fans online">{figures.online} FAN{figures.online === 1 ? "" : "S"} ONLINE</span></p>
                 <p className="mt-[14px] flex items-center">
                   <span className="flex" aria-hidden="true">{[0, 1, 2].map((i) => <span key={i} className="avatar-icon -ml-[2px] first:ml-0" style={{ width: 20, height: 20 }}><i className="fa-solid fa-user-astronaut text-[12px]" /></span>)}</span>
                   <span className="mono ml-[12px] text-[16px] leading-none">{fmtInt(figures.fans)} USERS</span>
@@ -104,7 +111,7 @@ export default async function ChannelLayout({ children, params }: { children: Re
             {fan && <Link href={`/${slug}/account`} className="hover:text-white">Account</Link>}
             {admin && <Link href={`/${slug}/admin`} className="hover:text-white">Admin</Link>}
           </footer>
-          <ChatBar online={figures.online} href={settings.chat_url ?? null} />
+          <Chat slug={slug} channelId={channel.id} online={figures.online} initial={(chat.data ?? []) as ChatMessage[]} viewer={fan ? { id: fan.id, name: fan.display_name } : null} isAdmin={admin} now={new Date().toISOString()} />
         </div>
         <XpFromQuery />
       </JoinModalProvider>

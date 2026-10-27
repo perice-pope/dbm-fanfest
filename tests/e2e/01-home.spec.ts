@@ -19,7 +19,7 @@ test.describe("anonymous visitor", () => {
     await expect(page.locator("#quests article")).toHaveCount(17);
     await expect(page.locator("#rewards article")).toHaveCount(5);
     await expect(page.getByRole("button", { name: "Lifetime" })).toBeVisible();
-    await expect(page.getByLabel("Fans online").first()).toBeVisible();
+    await expect(page.getByLabel("Fans online").filter({ visible: true }).first()).toBeVisible();
   });
 
   test("quest CTAs open the join modal for visitors, which leads to sign in", async ({ page }) => {

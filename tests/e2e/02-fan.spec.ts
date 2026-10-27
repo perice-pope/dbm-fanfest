@@ -116,9 +116,17 @@ test("leaderboard and activity show the fan", async ({ page }) => {
   const board = page.locator('section[aria-label="Leaderboard"]');
   await board.getByRole("button", { name: "Weekly" }).click();
   await expect(board.getByRole("heading", { name: /Weekly Leaderboard/ })).toBeVisible();
-  await expect(board.getByText("Fan One")).toBeVisible();
-  await expect(board.getByText("1,220").first()).toBeVisible();
+  // Sixty seeded fans usually keep Fan One out of the card's top three; the rank line still carries the XP.
+  await expect(board.getByText(/1,220/).first()).toBeVisible();
   await expect(page.locator('section[aria-label="Recent activity"]').getByText("Fan One").first()).toBeVisible();
+  // The full board lists every ranked fan, fifty a page.
+  for (let p = 1; ; p++) {
+    await page.goto(`/${SLUG}/leaderboard?period=weekly&page=${p}`);
+    await expect(page.getByRole("heading", { name: "Leaderboard" })).toBeVisible();
+    if (await page.getByText("Fan One", { exact: true }).count()) break;
+    if (!(await page.getByRole("link", { name: "Next" }).count())) throw new Error("Fan One is not on the weekly leaderboard");
+  }
+  await expect(page.getByText("Fan One", { exact: true }).first()).toBeVisible();
 });
 
 test("hidden fans leave the board but keep XP", async ({ page }) => {

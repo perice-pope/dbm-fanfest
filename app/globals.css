@@ -32,6 +32,7 @@
   --color-chat: var(--chat);
   --color-card-stroke: var(--card-stroke);
   --color-card-stroke-2: var(--card-stroke-2);
+  --color-card: var(--card);
   --color-hairline: var(--hairline);
   --font-sans: var(--font-hanken), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-atkinson), ui-monospace, monospace;
@@ -110,3 +111,15 @@ textarea.input { padding: 0.7rem 0.9rem; min-height: 90px; }
 .scrollbar-none { scrollbar-width: none; }
 @keyframes toast-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 .toast { animation: toast-in 180ms ease-out; }
+
+/* Recent Activity marquee: the rows are drawn twice and the track slides up by exactly one copy (73px per row) at about 18px/s; hover, focus and touch pause it */
+@keyframes feed-marquee { from { transform: translateY(0); } to { transform: translateY(calc(var(--feed-shift) * -1)); } }
+.feed-marquee { overflow: hidden; }
+.feed-marquee-track { animation: feed-marquee var(--feed-duration, 20s) linear infinite; }
+.feed-marquee:hover .feed-marquee-track, .feed-marquee:focus-within .feed-marquee-track, .feed-marquee[data-paused="true"] .feed-marquee-track { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) {
+  .feed-marquee { overflow-y: auto; scrollbar-width: none; }
+  .feed-marquee::-webkit-scrollbar { display: none; }
+  .feed-marquee-track { animation: none; }
+  .feed-marquee-copy { display: none; }
+}

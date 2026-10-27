@@ -23,7 +23,6 @@ export default async function SettingsAdmin({ params, searchParams }: { params: 
         <label className="text-sm">Review cadence line<input name="review_cadence" className="input mt-1" defaultValue={s.review_cadence ?? ""} /></label>
         <label className="text-sm">Submissions per fan per day<input name="submissions_per_day" type="number" min={1} className="input mt-1" defaultValue={s.submissions_per_day ?? 10} /></label>
         <label className="text-sm">Max waiting per fan<input name="max_pending" type="number" min={1} className="input mt-1" defaultValue={s.max_pending ?? 5} /></label>
-        <label className="text-sm sm:col-span-2">Chat link (blank hides it)<input name="chat_url" className="input mt-1" defaultValue={s.chat_url ?? ""} /></label>
       </div>
       <h4 className="display pt-2 text-xl">Links</h4>
       <div className="grid gap-3 sm:grid-cols-2">

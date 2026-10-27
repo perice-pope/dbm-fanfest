@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.18"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       admin_actions: {
@@ -137,6 +162,51 @@ export type Database = {
         }
         Relationships: []
       }
+      chat_messages: {
+        Row: {
+          body: string
+          channel_id: string
+          created_at: string
+          deleted_at: string | null
+          fan_id: string
+          id: string
+          is_seed: boolean
+        }
+        Insert: {
+          body: string
+          channel_id: string
+          created_at?: string
+          deleted_at?: string | null
+          fan_id: string
+          id?: string
+          is_seed?: boolean
+        }
+        Update: {
+          body?: string
+          channel_id?: string
+          created_at?: string
+          deleted_at?: string | null
+          fan_id?: string
+          id?: string
+          is_seed?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_messages_fan_id_fkey"
+            columns: ["fan_id"]
+            isOneToOne: false
+            referencedRelation: "fans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_signups: {
         Row: {
           channel_id: string
@@ -183,6 +253,7 @@ export type Database = {
           email: string
           handles: Json
           id: string
+          is_seed: boolean
           last_seen_at: string | null
           newsletter_opt_in: boolean
           normalized_email: string
@@ -197,6 +268,7 @@ export type Database = {
           email: string
           handles?: Json
           id: string
+          is_seed?: boolean
           last_seen_at?: string | null
           newsletter_opt_in?: boolean
           normalized_email: string
@@ -211,6 +283,7 @@ export type Database = {
           email?: string
           handles?: Json
           id?: string
+          is_seed?: boolean
           last_seen_at?: string | null
           newsletter_opt_in?: boolean
           normalized_email?: string
@@ -903,6 +976,7 @@ export type Database = {
           email: string
           handles: Json
           id: string
+          is_seed: boolean
           last_seen_at: string | null
           newsletter_opt_in: boolean
           normalized_email: string
@@ -954,6 +1028,7 @@ export type Database = {
           email: string
           handles: Json
           id: string
+          is_seed: boolean
           last_seen_at: string | null
           newsletter_opt_in: boolean
           normalized_email: string
@@ -974,6 +1049,17 @@ export type Database = {
         Returns: Json
       }
       channel_stats: { Args: { p_channel: string }; Returns: Json }
+      chat_recent: {
+        Args: { p_before?: string; p_channel: string; p_limit?: number }
+        Returns: {
+          body: string
+          created_at: string
+          display_name: string
+          fan_id: string
+          id: string
+          is_admin: boolean
+        }[]
+      }
       check_in: { Args: { p_channel_slug: string }; Returns: Json }
       claim_reward: { Args: { p_reward: string }; Returns: Json }
       create_submission: {
@@ -992,6 +1078,7 @@ export type Database = {
         }
         Returns: Json
       }
+      delete_chat_message: { Args: { p_id: string }; Returns: boolean }
       enter_draw: { Args: { p_reward: string }; Returns: Json }
       fan_active_in_channel: {
         Args: { p_channel: string; p_fan: string }
@@ -1001,6 +1088,7 @@ export type Database = {
         Args: { p_channel: string; p_fan: string }
         Returns: number
       }
+      fans_online: { Args: { p_channel: string }; Returns: number }
       is_admin: { Args: { p_channel: string }; Returns: boolean }
       join_email_list: { Args: { p_channel: string }; Returns: Json }
       leaderboard: {
@@ -1038,6 +1126,10 @@ export type Database = {
         Returns: string
       }
       pick_winner: { Args: { p_reward: string }; Returns: Json }
+      post_chat_message: {
+        Args: { p_body: string; p_channel_slug: string }
+        Returns: Json
+      }
       record_link_visit: { Args: { p_quest: string }; Returns: Json }
       reject_submission: {
         Args: { p_id: string; p_mode: string; p_note: string; p_reason: string }
@@ -1064,6 +1156,7 @@ export type Database = {
         Args: { p_answers: Json; p_quest: string }
         Returns: Json
       }
+      touch_presence: { Args: never; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
@@ -1192,6 +1285,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },

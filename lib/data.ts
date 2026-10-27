@@ -27,7 +27,6 @@ export type ChannelSettings = {
   max_pending?: number;
   theme?: ChannelTheme;
   show_header_counters?: boolean;
-  chat_url?: string;
   avatar_url?: string;
 };
 

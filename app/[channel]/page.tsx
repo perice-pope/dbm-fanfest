@@ -11,6 +11,7 @@ import { Rail } from "@/components/Rail";
 import { QuestCard } from "@/components/QuestCard";
 import { RewardCard } from "@/components/RewardCard";
 import { requestOrigin } from "@/lib/site";
+import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +23,8 @@ export default async function ChannelPage({ params }: { params: Promise<{ channe
   const channel = await getChannel(slug);
   if (!channel) notFound();
   const { fan } = await getViewer();
-  const [home, figures, origin] = await Promise.all([getChannelHome(channel, fan), getChannelFigures(channel, !!fan), requestOrigin()]);
+  const sb = await createClient();
+  const [home, figures, origin] = await Promise.all([getChannelHome(channel, fan), getChannelFigures(channel, sb), requestOrigin()]);
   const now = new Date();
   const tz = channel.timezone;
   const views = home.quests.map((q) => questView(q, { tz, now, lifetimeXp: home.lifetimeXp, ledger: home.ledger, submissions: home.submissions }));
@@ -38,7 +40,7 @@ export default async function ChannelPage({ params }: { params: Promise<{ channe
       <div className="mx-auto max-w-[1440px] px-[24px]">
         <div className="mt-[24px] grid gap-[25px] lg:mt-[51px] lg:grid-cols-[699fr_667fr]">
           <Leaderboard slug={slug} boards={home.boards} ranks={home.ranks} signedIn={signedIn} fanId={fan?.id ?? null} />
-          <ActivityFeed feed={home.feed} monthXp={figures.monthXp} now={nowIso} />
+          <ActivityFeed channelId={channel.id} feed={home.feed} monthXp={figures.monthXp} now={nowIso} />
         </div>
       </div>
       <div className="mt-[25px] lg:mt-[51px]">

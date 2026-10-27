@@ -202,7 +202,7 @@ export async function saveSettings(slug: string, fd: FormData) {
   settings.review_cadence = str(fd, "review_cadence") || null;
   settings.submissions_per_day = Math.max(1, Math.round(num(fd, "submissions_per_day", 10)));
   settings.max_pending = Math.max(1, Math.round(num(fd, "max_pending", 5)));
-  settings.chat_url = str(fd, "chat_url") || null;
+  delete settings.chat_url; // the pill opens the built-in chat now, so the old external link goes
   settings.theme = { ...((settings.theme as Record<string, string>) ?? {}), accent: str(fd, "accent") || "#f2b441" };
   const links = { spotify: str(fd, "link_spotify") || null, apple: str(fd, "link_apple") || null, instagram: str(fd, "link_instagram") || null, tiktok: str(fd, "link_tiktok") || null, facebook: str(fd, "link_facebook") || null, youtube: str(fd, "link_youtube") || null, merch: str(fd, "link_merch") || null };
   await sb.from("channels").update({ name: str(fd, "name") || channel.name, tagline: str(fd, "tagline") || null, timezone: str(fd, "timezone") || channel.timezone, settings: settings as Json, links }).eq("id", channel.id);

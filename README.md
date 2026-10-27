@@ -52,6 +52,24 @@ pnpm exec playwright test                              # end to end against pnpm
 
 The end-to-end suite signs test accounts in with generated magic-link tokens, so it needs `SUPABASE_SECRET_KEY` in `.env.local`. It wipes the test fans' XP first and, when it finishes, hides the test fans from the public boards and reopens the draws it closed. Point `E2E_BASE_URL` at a deployment to test it live (`E2E_BASE_URL=https://dbm-fanfest.vercel.app pnpm exec playwright test`).
 
+## Chat
+
+The Figma chat pill opens a fan chat panel. Everyone can read it; fans sign in to post (the join modal opens for visitors). Messages go through `post_chat_message`, which trims the text to 500 characters, refuses hidden and banned fans, and limits a fan to 3 posts per 10 seconds and 40 per 10 minutes, with a repeat of the same line inside a minute refused. A fan can delete their own message and a channel admin can delete any (logged in `admin_actions`); deleted rows stay in the table with `deleted_at` set. The panel updates through Supabase Realtime on `chat_messages` plus a 20 s poll while open. Signed-in fans ping `touch_presence` every 4 minutes, and `fans_online` counts fans seen in the last 10 minutes. Recent Activity on the channel page scrolls on its own and refreshes every 30 s.
+
+## Filler data
+
+Until real fans arrive, the live site is filled with seeded activity so it looks busy: 60 fake fans (`first.l<n>@seed.dbm`, `fans.is_seed = true`) with 75 days of XP history, extra XP rows for the builder's own account so it sits near the top of the boards, and about 150 chat lines (`chat_messages.is_seed = true`) over the last 10 days. Every seeded ledger row carries `ref_type = 'seed'`. The plan is deterministic (`scripts/filler-plan.mts`, seeded from each fan's email), so a refresh produces the same people with history shifted to today.
+
+```bash
+node --env-file=.env.local scripts/seed-filler.mts             # add; refuses to run while seeded fans exist
+node --env-file=.env.local scripts/seed-filler.mts --refresh   # remove, then add again from today
+node --env-file=.env.local scripts/seed-filler.mts --remove    # remove only
+```
+
+`--remove` deletes the seeded auth users (their fans, ledger and chat rows cascade), every `chat_messages` row with `is_seed` and every `xp_ledger` row with `ref_type = 'seed'`, and nothing else. Run it before the handoff to Adam: the filler must not ship to the band. `--slug` picks the channel and `--me` the owner account that gets the extra rows (default `perice09@gmail.com`). The script ends by printing the owner's weekly, monthly and lifetime ranks; it never adjusts them.
+
+The "fans online" number in the chat pill comes from `fans_online()`: real fans seen in the last 10 minutes plus about 30% of the seeded fans, in a rotation that changes every hour.
+
 ## Deploy
 
 ```bash
