@@ -402,6 +402,7 @@ export type Database = {
           fan_id: string
           last_synced_at: string | null
           service: string
+          session_key: string | null
           username: string
         }
         Insert: {
@@ -410,6 +411,7 @@ export type Database = {
           fan_id: string
           last_synced_at?: string | null
           service?: string
+          session_key?: string | null
           username: string
         }
         Update: {
@@ -418,6 +420,7 @@ export type Database = {
           fan_id?: string
           last_synced_at?: string | null
           service?: string
+          session_key?: string | null
           username?: string
         }
         Relationships: [

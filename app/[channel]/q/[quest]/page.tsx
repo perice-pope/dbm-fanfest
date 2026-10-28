@@ -12,6 +12,8 @@ import { InvitePanel } from "./InvitePanel";
 import { ListenPanel } from "./ListenPanel";
 import { creditedToday, type ListenConfig } from "@/lib/listen-match";
 import { periodKey } from "@/lib/period";
+import { lastfmConfigured } from "@/lib/lastfm";
+import { Suspense } from "react";
 import { requestOrigin } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
@@ -35,7 +37,7 @@ export default async function QuestPage({ params }: { params: Promise<{ channel:
   const canAct = signedIn && (view.state === "available" || (view.state === "rejected" && view.retryAllowed));
   const origin = await requestOrigin();
   const listenAccount = signedIn && quest.type === "listen"
-    ? (await sb.from("listen_accounts").select("username, connected_at, last_synced_at").eq("fan_id", fan!.id).maybeSingle()).data
+    ? (await sb.from("listen_accounts").select("service, username, connected_at, last_synced_at").eq("fan_id", fan!.id).maybeSingle()).data
     : null;
   const listenCfg = cfg as ListenConfig;
 
@@ -81,7 +83,7 @@ export default async function QuestPage({ params }: { params: Promise<{ channel:
           <UploadForm slug={slug} questId={quest.id} channelId={channel.id} fanId={fan!.id} type={quest.type} kind={cfg.kind} rights={cfg.rights} auto={!!cfg.auto_approve} reviewCadence={settings.review_cadence} />
         )}
         {signedIn && quest.type === "listen" && (view.state === "available" || view.state === "completed") && (
-          <ListenPanel slug={slug} questId={quest.id} account={listenAccount} today={creditedToday(ctx.ledger, quest.id, periodKey("daily", channel.timezone, new Date()))} cap={listenCfg.daily_cap ?? 4} xp={quest.xp} />
+          <Suspense><ListenPanel slug={slug} questId={quest.id} account={listenAccount} today={creditedToday(ctx.ledger, quest.id, periodKey("daily", channel.timezone, new Date()))} cap={listenCfg.daily_cap ?? 4} xp={quest.xp} anyXp={listenCfg.any_play_xp ?? 0} anyCap={listenCfg.any_play_cap ?? 10} lastfmReady={lastfmConfigured()} /></Suspense>
         )}
         {canAct && quest.type === "social_link" && <LinkForm slug={slug} questId={quest.id} reviewCadence={settings.review_cadence} />}
         {canAct && quest.type === "email_signup" && <JoinListForm slug={slug} consent={cfg.consent ?? "Yes, email me about the band."} joined={ctx.joinedList} />}

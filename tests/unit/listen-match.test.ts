@@ -62,3 +62,12 @@ describe("creditedToday", () => {
     expect(creditedToday(ledger, "q", "2026-10-27")).toBe(2);
   });
 });
+
+describe("creditedToday ignores small any-play rows", () => {
+  it("counts band songs only", () => {
+    expect(creditedToday([
+      { quest_id: "q", period_key: "2026-10-27:her shoes", xp: 25 },
+      { quest_id: "q", period_key: "2026-10-27:any:1761000000", xp: 5 },
+    ], "q", "2026-10-27")).toBe(1);
+  });
+});

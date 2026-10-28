@@ -25,7 +25,7 @@ test.beforeAll(async () => {
   adminId = fan!.id;
   const { data: q } = await sb.from("quests").insert({
     channel_id: ch!.id, type: "listen", title: "E2E listening quest", xp: 10, repeat_rule: "daily", status: "draft", sort_order: 999,
-    config: { service: "listenbrainz", artist, daily_cap: 2 },
+    config: { service: "listenbrainz", artist, daily_cap: 2, any_play_xp: 2, any_play_cap: 3 },
   }).select("id").single();
   questId = q!.id;
   await sb.from("listen_accounts").delete().eq("fan_id", adminId);
@@ -48,22 +48,29 @@ test("fans cannot open a draft listening quest", async ({ page }) => {
   await expect(page.getByText(/could not be found|404/i).first()).toBeVisible();
 });
 
-test("an admin previews the draft, checks plays and is paid up to the daily cap", async ({ page }) => {
+test("an admin previews the draft, plays are paid on load up to the daily cap", async ({ page }) => {
   test.skip(!questId, "ListenBrainz unreachable or the public account has no recent listens");
   await signIn(page, ADMIN, `/${SLUG}/q/${questId}`);
   await expect(page.getByText("Draft preview")).toBeVisible();
-  await expect(page.getByText(`Connected as ${LB_USER}`)).toBeVisible();
-  await page.getByRole("button", { name: "Check my plays" }).click();
-  await expect(page.getByText(/\+\d+ XP · \d song/).first()).toBeVisible({ timeout: 30_000 });
-  const { data: rows } = await admin().from("xp_ledger").select("period_key, xp, note").eq("quest_id", questId);
-  expect(rows!.length).toBeGreaterThan(0);
+  await expect(page.getByText(`connected as ${LB_USER}`)).toBeVisible();
+  // The page checks plays on load, like the EJAE Spotify scan; wait for that payout to land.
+  await expect.poll(async () => (await admin().from("xp_ledger").select("id", { count: "exact", head: true }).eq("quest_id", questId)).count ?? 0, { timeout: 45_000 }).toBeGreaterThan(0);
+  const { data: rows } = await admin().from("xp_ledger").select("period_key, xp, note, source").eq("quest_id", questId);
+  const band = rows!.filter((r) => r.source === "listen");
+  expect(band.length).toBeGreaterThan(0);
   // Never more than daily_cap (2) songs on any one day, and never the same song twice in a day.
   const perDay = new Map<string, number>();
-  for (const r of rows!) perDay.set(r.period_key.slice(0, 10), (perDay.get(r.period_key.slice(0, 10)) ?? 0) + 1);
+  for (const r of band) perDay.set(r.period_key.slice(0, 10), (perDay.get(r.period_key.slice(0, 10)) ?? 0) + 1);
   expect(Math.max(...perDay.values())).toBeLessThanOrEqual(2);
-  expect(new Set(rows!.map((r) => r.period_key)).size).toBe(rows!.length);
-  expect(rows!.every((r) => r.xp === 10 && r.note?.startsWith("Streamed "))).toBe(true);
-  // A second check inside a minute is refused instead of hammering ListenBrainz.
+  expect(new Set(band.map((r) => r.period_key)).size).toBe(band.length);
+  expect(band.every((r) => r.xp === 10 && r.note?.startsWith("Streamed "))).toBe(true);
+  // Other plays pay the small amount once each, never more than any_play_cap (3) a day.
+  const other = rows!.filter((r) => r.source === "listen_any");
+  expect(other.every((r) => r.xp === 2 && r.note === "Streamed music")).toBe(true);
+  const otherPerDay = new Map<string, number>();
+  for (const r of other) otherPerDay.set(r.period_key.slice(0, 10), (otherPerDay.get(r.period_key.slice(0, 10)) ?? 0) + 1);
+  if (other.length) expect(Math.max(...otherPerDay.values())).toBeLessThanOrEqual(3);
+  // A manual check inside a minute of the automatic one is refused instead of hammering the service.
   await page.getByRole("button", { name: "Check my plays" }).click();
   await expect(page.getByText("Just checked. Try again in a minute.")).toBeVisible();
 });
@@ -77,4 +84,24 @@ test("a bad token is refused and nothing is linked", async ({ page }) => {
   await expect(page.getByText("ListenBrainz did not accept that token.", { exact: false })).toBeVisible({ timeout: 15_000 });
   const { count } = await admin().from("listen_accounts").select("fan_id", { count: "exact", head: true }).eq("fan_id", adminId);
   expect(count).toBe(0);
+});
+
+test("the Last.fm link is offered only when the site has Last.fm keys", async ({ page }) => {
+  test.skip(!questId, "ListenBrainz unreachable or the public account has no recent listens");
+  await admin().from("listen_accounts").delete().eq("fan_id", adminId);
+  await signIn(page, ADMIN, `/${SLUG}/q/${questId}`);
+  const configured = !!(process.env.LASTFM_API_KEY && process.env.LASTFM_SHARED_SECRET);
+  const link = page.getByRole("link", { name: "Connect Last.fm" });
+  if (!configured) {
+    await expect(link).toHaveCount(0);
+    await expect(page.getByLabel("ListenBrainz user token")).toBeVisible();
+    return;
+  }
+  await expect(link).toBeVisible();
+  // The connect route must hand the fan to Last.fm's approval page with our callback attached.
+  const res = await page.request.get(`/api/lastfm/connect?slug=${SLUG}&quest=${questId}`, { maxRedirects: 0 });
+  expect(res.status()).toBe(307);
+  const to = new URL(res.headers()["location"]);
+  expect(to.hostname).toBe("www.last.fm");
+  expect(to.searchParams.get("cb")).toContain("/api/lastfm/callback?state=");
 });

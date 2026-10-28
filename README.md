@@ -58,16 +58,18 @@ The Figma chat pill opens a fan chat panel. Everyone can read it; fans sign in t
 
 ## Listening quest (draft)
 
-"Stream Destroyed by Moths" pays XP for actual plays, read from ListenBrainz. It ships as a **draft**: fans cannot see it, and channel admins can open it from Admin → Quests to test it. It goes live when Amanda approves the MetaBrainz commercial tier (likely Bronze, about $100 a month) and her distributor confirms XP for plays does not break streaming rules.
+"Stream Destroyed by Moths" pays XP for actual plays. It ships as a **draft**: fans cannot see it until an admin sets it live in Admin → Quests. Amanda has approved it with the understanding that Last.fm's API terms allow non-commercial use only and that Last.fm could revoke the key; ListenBrainz (MetaBrainz commercial tier, about $100 a month) is the sanctioned fallback and stays wired in.
 
-How it works:
+How it works, in the shape of the EJAE site's Spotify link:
 
-- The fan makes a free ListenBrainz account, links Spotify there (or Last.fm, for Tidal, Deezer or YouTube), and pastes their ListenBrainz user token on the quest page. The server checks the token with ListenBrainz, stores only the username in `listen_accounts`, and discards the token. One ListenBrainz account can belong to one fan.
-- "Check my plays" (at most once a minute) and a daily Vercel Cron job (`/api/cron/listens`, `vercel.json`) read new plays since the fan connected. Plays whose artist is the band pay the quest's XP through `award_listens`: one credited play per song per local day, up to `daily_cap` songs a day. Activity shows them as `Streamed "Song"`.
-- Quest config (Admin → Quests): `artist` (defaults to the channel name), `artist_mbid` once the band is in MusicBrainz, `daily_cap` (default 4), and `services`, an optional allowlist such as `["spotify.com"]`. Placeholders today: 25 XP a song, 4 songs a day.
-- Apple Music and Amazon Music cannot report plays to ListenBrainz. Plays are self-reported by the fan's apps, so they can be faked; the daily cap bounds that.
+- **Last.fm** (one click): "Connect Last.fm" sends the fan to `/api/lastfm/connect`, which bounces through Last.fm's approval page and back to `/api/lastfm/callback`. The callback swaps the one-time token for the fan's username and session key (`listen_accounts`, server-only columns) and returns to the quest page with `?lastfm=connected`. Last.fm itself records plays from Spotify, Tidal, Deezer, YouTube and most desktop players; the fan links their player under Last.fm → Settings → Applications.
+- **ListenBrainz** (paste a token): the fallback form on the same page; the token is checked with ListenBrainz and discarded.
+- **Checking plays**: the quest page checks on load and once a minute while open ("Check my plays" forces one, at most once a minute), and a daily Vercel Cron job (`/api/cron/listens`, `vercel.json`) checks every connected fan. Reads start from the moment the fan connected.
+- **XP** through `award_listens`: a play of the band's songs pays the quest's XP once per song per local day, up to `daily_cap` songs a day; any other play pays `any_play_xp` once per play (the timestamp is the dedupe key), up to `any_play_cap` a day. Placeholders: 25 XP a song, 4 songs a day; 5 XP a play, 10 plays a day. Activity shows `Streamed "Song"` and `Streamed music`.
+- Quest config (Admin → Quests): `artist` (defaults to the channel name), `artist_mbid` once the band is in MusicBrainz, `daily_cap`, `any_play_xp`, `any_play_cap`, and `services` (ListenBrainz only, an allowlist such as `["spotify.com"]`).
+- Apple Music and Amazon Music plays cannot reach either service. Plays are self-reported by the fan's apps, so they can be faked; the caps bound that.
 
-To launch: set `CRON_SECRET` in Vercel (Production) to a long random string, redeploy, then set the quest's status to `live`. Vercel's free plan runs the cron once a day, which is what `vercel.json` asks for.
+To launch: create a Last.fm API account at https://www.last.fm/api/account/create and set `LASTFM_API_KEY` and `LASTFM_SHARED_SECRET` in Vercel (Production); set `CRON_SECRET` to a long random string; redeploy; then set the quest's status to `live`. Without the Last.fm keys the page offers ListenBrainz only.
 
 ## Filler data
 

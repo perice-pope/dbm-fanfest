@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
-import { syncFan } from "@/lib/listenbrainz";
+import { syncFan } from "@/lib/listen-sync";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;

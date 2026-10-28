@@ -2,7 +2,8 @@
 import { revalidatePath } from "next/cache";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { friendlyError } from "@/lib/errors";
-import { syncFan, validateToken, type SyncResult } from "@/lib/listenbrainz";
+import { validateToken } from "@/lib/listenbrainz";
+import { syncFan, type SyncResult } from "@/lib/listen-sync";
 import type { ActionResult } from "@/app/[channel]/actions";
 
 /** The signed-in fan, the listening quest, and whether a draft may be used (channel admins test drafts before launch). */
@@ -26,10 +27,10 @@ export async function connectListenBrainz(slug: string, questId: string, token: 
     const sb = createAdminClient();
     const { data: fan } = await sb.from("fans").select("status").eq("id", fanId).single();
     if (fan?.status === "banned") throw new Error("BANNED");
-    const { data: existing } = await sb.from("listen_accounts").select("username").eq("fan_id", fanId).maybeSingle();
+    const { data: existing } = await sb.from("listen_accounts").select("service, username").eq("fan_id", fanId).maybeSingle();
     // Relinking the same account keeps its start time; a different account starts counting from now.
-    if (existing && existing.username.toLowerCase() === username.toLowerCase()) return { ok: true, data: { username: existing.username } };
-    const row = { fan_id: fanId, service: "listenbrainz", username, connected_at: new Date().toISOString(), cursor_ts: 0, last_synced_at: null };
+    if (existing && existing.service === "listenbrainz" && existing.username.toLowerCase() === username.toLowerCase()) return { ok: true, data: { username: existing.username } };
+    const row = { fan_id: fanId, service: "listenbrainz", username, session_key: null, connected_at: new Date().toISOString(), cursor_ts: 0, last_synced_at: null };
     const { error } = await sb.from("listen_accounts").upsert(row, { onConflict: "fan_id" });
     if (error) throw new Error(error.code === "23505" ? "LB_TAKEN" : error.message);
     revalidatePath(`/${slug}/q/${questId}`);
@@ -54,7 +55,7 @@ export async function syncListens(slug: string, questId: string): Promise<Action
   }
 }
 
-export async function disconnectListenBrainz(slug: string, questId: string): Promise<ActionResult<null>> {
+export async function disconnectListening(slug: string, questId: string): Promise<ActionResult<null>> {
   try {
     const { fanId } = await context(slug, questId);
     await createAdminClient().from("listen_accounts").delete().eq("fan_id", fanId);

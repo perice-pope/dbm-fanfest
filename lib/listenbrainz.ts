@@ -1,6 +1,5 @@
 // Server only: uses the secret-key client. Import from server actions and route handlers, never from a client component.
-import { createAdminClient } from "@/lib/supabase/server";
-import { bandPlays, type LbListen, type ListenConfig } from "@/lib/listen-match";
+import type { LbListen } from "@/lib/listen-match";
 
 const API = "https://api.listenbrainz.org/1";
 const UA = "DBM-FanFest/1.0 (+https://dbm-fanfest.vercel.app)";
@@ -30,7 +29,7 @@ export async function validateToken(token: string): Promise<string> {
 }
 
 /** Listens strictly after minTs, oldest first, at most MAX_PAGES pages. ListenBrainz returns the earliest window after min_ts. */
-async function listensAfter(username: string, minTs: number) {
+export async function listensAfter(username: string, minTs: number) {
   const out: LbListen[] = [];
   let cursor = minTs;
   for (let page = 0; page < MAX_PAGES; page++) {
@@ -44,30 +43,4 @@ async function listensAfter(username: string, minTs: number) {
     if (listens.length < PAGE) break;
   }
   return { listens: out, cursor };
-}
-
-export type SyncResult = { awarded: number; xp: number; capped: number; checked: number };
-
-/** Reads a fan's new plays, pays the band's through award_listens and moves the fan's cursor. Runs with the secret key. */
-export async function syncFan(fanId: string, questId: string, opts: { allowDraft?: boolean } = {}): Promise<SyncResult> {
-  const sb = createAdminClient();
-  const [{ data: acc }, { data: quest }] = await Promise.all([
-    sb.from("listen_accounts").select("*").eq("fan_id", fanId).maybeSingle(),
-    sb.from("quests").select("id, config, channel_id, channels(name)").eq("id", questId).single(),
-  ]);
-  if (!acc) throw new Error("NOT_CONNECTED");
-  if (!quest) throw new Error("QUEST_UNAVAILABLE");
-  const since = Math.max(acc.cursor_ts, Math.floor(new Date(acc.connected_at).getTime() / 1000));
-  const { listens, cursor } = await listensAfter(acc.username, since);
-  const cfg = (quest.config ?? {}) as ListenConfig;
-  const bandName = (quest.channels as { name: string } | null)?.name ?? "";
-  const plays = bandPlays(listens, cfg, bandName);
-  let result = { awarded: 0, xp: 0, capped: 0 };
-  if (plays.length) {
-    const { data, error } = await sb.rpc("award_listens", { p_quest: questId, p_fan: fanId, p_plays: plays, p_allow_draft: !!opts.allowDraft });
-    if (error) throw error;
-    result = data as typeof result;
-  }
-  await sb.from("listen_accounts").update({ cursor_ts: cursor, last_synced_at: new Date().toISOString() }).eq("fan_id", fanId);
-  return { ...result, checked: listens.length };
 }

@@ -1,6 +1,6 @@
 /** Pure helpers for the listening quest: which ListenBrainz plays belong to the band. No network, no server imports. */
 
-export type ListenConfig = { service?: "listenbrainz"; artist?: string; artist_mbid?: string; daily_cap?: number; services?: string[]; hint?: string };
+export type ListenConfig = { service?: "listenbrainz"; artist?: string; artist_mbid?: string; daily_cap?: number; any_play_xp?: number; any_play_cap?: number; services?: string[]; hint?: string };
 
 export type LbListen = {
   listened_at: number;
@@ -52,5 +52,5 @@ export function bandPlays(listens: LbListen[], cfg: ListenConfig, fallbackArtist
 
 /** Today's credited songs for the listening quest, from the fan's ledger (period keys look like 2026-10-27:her shoes). */
 export function creditedToday(ledger: { quest_id: string | null; period_key: string; xp: number }[], questId: string, today: string) {
-  return ledger.filter((l) => l.quest_id === questId && l.xp > 0 && l.period_key.startsWith(`${today}:`)).length;
+  return ledger.filter((l) => l.quest_id === questId && l.xp > 0 && l.period_key.startsWith(`${today}:`) && !l.period_key.startsWith(`${today}:any:`)).length;
 }
