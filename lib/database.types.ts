@@ -397,30 +397,42 @@ export type Database = {
       }
       listen_accounts: {
         Row: {
+          access_token: string | null
           connected_at: string
           cursor_ts: number
+          display_name: string | null
           fan_id: string
           last_synced_at: string | null
+          refresh_token: string | null
           service: string
           session_key: string | null
+          token_expires_at: string | null
           username: string
         }
         Insert: {
+          access_token?: string | null
           connected_at?: string
           cursor_ts?: number
+          display_name?: string | null
           fan_id: string
           last_synced_at?: string | null
+          refresh_token?: string | null
           service?: string
           session_key?: string | null
+          token_expires_at?: string | null
           username: string
         }
         Update: {
+          access_token?: string | null
           connected_at?: string
           cursor_ts?: number
+          display_name?: string | null
           fan_id?: string
           last_synced_at?: string | null
+          refresh_token?: string | null
           service?: string
           session_key?: string | null
+          token_expires_at?: string | null
           username?: string
         }
         Relationships: [

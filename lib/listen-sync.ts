@@ -3,8 +3,25 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { bandPlays, isBandArtist, type ListenConfig } from "@/lib/listen-match";
 import { listensAfter } from "@/lib/listenbrainz";
 import { recentTracks } from "@/lib/lastfm";
+import { recentlyPlayed, refreshTokens } from "@/lib/spotify";
 
 export type SyncResult = { awarded: number; any: number; xp: number; capped: number; checked: number };
+
+type Account = { fan_id: string; access_token: string | null; refresh_token: string | null; token_expires_at: string | null };
+
+/** A Spotify access token good for at least a minute, refreshing and saving a new one when the stored one is stale (as on the EJAE site). */
+async function spotifyToken(sb: ReturnType<typeof createAdminClient>, acc: Account) {
+  const expires = acc.token_expires_at ? new Date(acc.token_expires_at).getTime() : 0;
+  if (acc.access_token && expires - Date.now() > 60_000) return acc.access_token;
+  if (!acc.refresh_token) throw new Error("SP_BAD_TOKEN");
+  const t = await refreshTokens(acc.refresh_token);
+  await sb.from("listen_accounts").update({
+    access_token: t.access_token,
+    token_expires_at: new Date(Date.now() + t.expires_in * 1000).toISOString(),
+    ...(t.refresh_token ? { refresh_token: t.refresh_token } : {}),
+  }).eq("fan_id", acc.fan_id);
+  return t.access_token;
+}
 
 export async function syncFan(fanId: string, questId: string, opts: { allowDraft?: boolean } = {}): Promise<SyncResult> {
   const sb = createAdminClient();
@@ -20,7 +37,17 @@ export async function syncFan(fanId: string, questId: string, opts: { allowDraft
   let plays: { track: string; listened_at: number; band: boolean }[] = [];
   let cursor = since;
   let checked = 0;
-  if (acc.service === "lastfm") {
+  if (acc.service === "spotify") {
+    const token = await spotifyToken(sb, acc);
+    const r = await recentlyPlayed(token, since);
+    checked = r.plays.length;
+    cursor = r.cursor;
+    // Any credited artist counts, so features and remixes pay too.
+    plays = r.plays.map((p) => ({
+      track: p.track, listened_at: p.listened_at,
+      band: p.artists.some((a) => isBandArtist({ listened_at: p.listened_at, track_metadata: { artist_name: a } }, { artist })),
+    }));
+  } else if (acc.service === "lastfm") {
     const r = await recentTracks(acc.username, since, acc.session_key);
     checked = r.plays.length;
     cursor = r.cursor;

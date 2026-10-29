@@ -79,9 +79,34 @@ test("a bad token is refused and nothing is linked", async ({ page }) => {
   test.skip(!questId, "ListenBrainz unreachable or the public account has no recent listens");
   await admin().from("listen_accounts").delete().eq("fan_id", adminId);
   await signIn(page, ADMIN, `/${SLUG}/q/${questId}`);
+  // With Spotify or Last.fm keys the ListenBrainz form is folded away behind a toggle.
+  const toggle = page.getByRole("button", { name: "Use ListenBrainz instead" });
+  if (await toggle.count()) await toggle.click();
   await page.getByLabel("ListenBrainz user token").fill("00000000-0000-0000-0000-000000000000");
   await page.getByRole("button", { name: "Connect ListenBrainz" }).click();
   await expect(page.getByText("ListenBrainz did not accept that token.", { exact: false })).toBeVisible({ timeout: 15_000 });
+  const { count } = await admin().from("listen_accounts").select("fan_id", { count: "exact", head: true }).eq("fan_id", adminId);
+  expect(count).toBe(0);
+});
+
+test("the Spotify link is offered only when the site has Spotify keys", async ({ page }) => {
+  test.skip(!questId, "ListenBrainz unreachable or the public account has no recent listens");
+  await admin().from("listen_accounts").delete().eq("fan_id", adminId);
+  await signIn(page, ADMIN, `/${SLUG}/q/${questId}`);
+  const configured = !!(process.env.SPOTIFY_CLIENT_ID && process.env.SPOTIFY_CLIENT_SECRET);
+  const link = page.getByRole("link", { name: "Connect Spotify" });
+  if (!configured) { await expect(link).toHaveCount(0); return; }
+  await expect(link).toBeVisible();
+  // The connect route hands the fan to Spotify's approval page with our callback and the read-only scope.
+  const res = await page.request.get(`/api/spotify/connect?slug=${SLUG}&quest=${questId}`, { maxRedirects: 0 });
+  expect(res.status()).toBe(307);
+  const to = new URL(res.headers()["location"]);
+  expect(to.hostname).toBe("accounts.spotify.com");
+  expect(to.searchParams.get("redirect_uri")).toContain("/api/spotify/callback");
+  expect(to.searchParams.get("scope")).toBe("user-read-recently-played");
+  // A callback without the state cookie is refused and links nothing.
+  const cb = await page.request.get(`/api/spotify/callback?code=x&state=y`, { maxRedirects: 0 });
+  expect([302, 307]).toContain(cb.status());
   const { count } = await admin().from("listen_accounts").select("fan_id", { count: "exact", head: true }).eq("fan_id", adminId);
   expect(count).toBe(0);
 });
