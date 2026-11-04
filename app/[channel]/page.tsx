@@ -1,72 +1,57 @@
+import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
-import { getChannel, getChannelHome, getViewer } from "@/lib/data";
-import { getChannelFigures } from "@/lib/channel-view";
-import { questView, configOf } from "@/lib/quest-state";
-import { periodKey } from "@/lib/period";
-import { CheckIn } from "@/components/CheckIn";
-import { Leaderboard } from "@/components/Leaderboard";
-import { ActivityFeed } from "@/components/ActivityFeed";
+import { getChannel, settingsOf, type NewsItem } from "@/lib/data";
 import { NewsSection } from "@/components/NewsSection";
-import { Rail } from "@/components/Rail";
-import { QuestCard } from "@/components/QuestCard";
-import { RewardCard } from "@/components/RewardCard";
-import { requestOrigin } from "@/lib/site";
+import { ShowsList } from "@/components/ShowsList";
+import { SHOWS, splitShows, todayKey } from "@/lib/shows";
+import { fanfestUrl, requestOrigin } from "@/lib/site";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-const QUEST_IMAGES = ["/dbm/quest-a.png", "/dbm/quest-b.png"];
-const REWARD_IMAGES = ["/dbm/reward-a.png", "/dbm/reward-b.png"];
-
+/** The band's home page: News (from Supabase, edited in the admin area), the next shows, and the door to the fan club on FanFest. */
 export default async function ChannelPage({ params }: { params: Promise<{ channel: string }> }) {
   const { channel: slug } = await params;
   const channel = await getChannel(slug);
   if (!channel) notFound();
-  const { fan } = await getViewer();
   const sb = await createClient();
-  const [home, figures, origin] = await Promise.all([getChannelHome(channel, fan), getChannelFigures(channel, sb), requestOrigin()]);
-  const now = new Date();
-  const tz = channel.timezone;
-  const views = home.quests.map((q) => questView(q, { tz, now, lifetimeXp: home.lifetimeXp, ledger: home.ledger, submissions: home.submissions }));
-  const order = { available: 0, rejected: 1, in_review: 2, completed: 3, locked: 4, expired: 5 } as const;
-  const sorted = [...views].sort((a, b) => order[a.state] - order[b.state] || a.quest.sort_order - b.quest.sort_order);
-  const signedIn = !!fan;
-  const statFor = (id: string) => home.rewardStats.find((s) => s.reward_id === id);
-  const nowIso = now.toISOString();
+  const [news, origin] = await Promise.all([
+    sb.from("news_items").select("*").eq("channel_id", channel.id).eq("is_active", true).order("sort_order", { ascending: true }).order("published_at", { ascending: false }),
+    requestOrigin(),
+  ]);
+  const { upcoming } = splitShows(SHOWS, todayKey(channel.timezone));
+  const avatar = settingsOf(channel).avatar_url || "/dbm/avatar.jpg";
+  const community = fanfestUrl();
 
   return (
     <>
-      {signedIn && <CheckIn slug={slug} todayKey={periodKey("daily", tz, now)} />}
-      <div className="mx-auto max-w-[1440px] px-[24px]">
-        <div className="mt-[24px] grid gap-[25px] lg:mt-[51px] lg:grid-cols-[699fr_667fr]">
-          <Leaderboard slug={slug} boards={home.boards} ranks={home.ranks} signedIn={signedIn} fanId={fan?.id ?? null} />
-          <ActivityFeed channelId={channel.id} feed={home.feed} monthXp={figures.monthXp} now={nowIso} />
-        </div>
-      </div>
       <div className="mt-[25px] lg:mt-[51px]">
-        <NewsSection items={home.news} shareBase={`${origin}/${slug}`} />
+        <NewsSection items={(news.data ?? []) as NewsItem[]} shareBase={`${origin}/${slug}`} />
       </div>
-      <section id="quests" aria-label="Quests" className="scroll-mt-2 bg-section-quests">
-        <div className="mx-auto max-w-[1440px] px-[24px] pt-[30px]">
-          <h2 className="text-[32px] leading-none">Quests</h2>
-          <div className="mt-[20px] lg:mt-[44px]">
-            <Rail label="Quests">
-              {sorted.map((v, i) => <QuestCard key={v.quest.id} view={v} slug={slug} tz={tz} signedIn={signedIn} now={nowIso} image={configOf(v.quest).image_url ?? QUEST_IMAGES[i % 2]} />)}
-              {sorted.length === 0 && <p className="py-[40px] text-[16px]">No quests yet.</p>}
-            </Rail>
+      <section id="shows" aria-label="Shows" className="scroll-mt-2 bg-section-quests">
+        <div className="mx-auto max-w-[1440px] px-[24px] pb-[40px] pt-[30px]">
+          <h2 className="text-[32px] leading-none">Shows</h2>
+          <div className="mt-[20px] lg:mt-[36px]">
+            <ShowsList shows={upcoming.slice(0, 3)} empty="No shows announced yet." />
           </div>
+          <Link href={`/${slug}/shows`} className="mt-[24px] inline-flex items-center gap-[8px] text-[16px] leading-none underline">
+            All shows<span className="mi-sharp text-[24px]" aria-hidden="true">east</span>
+          </Link>
         </div>
       </section>
-      <section id="rewards" aria-label="Rewards" className="scroll-mt-2 bg-section-dark">
-        <div className="mx-auto max-w-[1440px] px-[24px] pt-[30px]">
-          <h2 className="text-[32px] leading-none">Rewards</h2>
-          <div className="mt-[21px] lg:mt-[44px]">
-            <Rail label="Rewards">
-              {home.rewards.map((r, i) => (
-                <RewardCard key={r.id} reward={r} stat={statFor(r.id)} slug={slug} signedIn={signedIn} claimed={home.claims.includes(r.id)} entered={home.entries.includes(r.id)} lifetimeXp={home.lifetimeXp} image={REWARD_IMAGES[i % 2]} tz={tz} now={nowIso} />
-              ))}
-              {home.rewards.length === 0 && <p className="py-[40px] text-[16px]">Rewards are on the way.</p>}
-            </Rail>
+      <section id="community" aria-label="Community" className="scroll-mt-2 bg-section-dark">
+        <div className="mx-auto max-w-[1440px] px-[24px] pb-[48px] pt-[30px]">
+          <h2 className="text-[32px] leading-none">Community</h2>
+          <div className="fig-card mt-[20px] flex flex-col gap-[25px] p-[24px] lg:mt-[36px] lg:flex-row lg:items-center lg:p-[32px]">
+            <span className="relative block h-[89px] w-[89px] shrink-0 overflow-hidden rounded-[7.5px] border border-muted bg-section-dark">
+              <Image src={avatar} alt="" fill sizes="89px" className="object-cover object-[50%_19%]" />
+            </span>
+            <div className="flex-1">
+              <p className="text-[24px] leading-tight">Join the {channel.name} fan club on FanFest</p>
+              <p className="mt-[16px] text-[16px] leading-[20px]">Quests, the leaderboard, rewards and fan chat all live there. Free to join.</p>
+            </div>
+            <div className="shrink-0 lg:w-[320px]"><a href={community} rel="noopener" className="fig-btn fig-btn-yellow">Open the community</a></div>
           </div>
         </div>
       </section>

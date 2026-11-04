@@ -1,6 +1,15 @@
-# Destroyed by Moths FanFest
+# Destroyed by Moths website
 
-A fan-engagement site for the band Destroyed by Moths: fans sign in with an emailed code, earn XP for quests (visits, quizzes, polls, uploads, social proof, email signup, invites), climb weekly, monthly and lifetime leaderboards, and claim rewards. The band runs everything from `/destroyedbymoths/admin`.
+The band's website in Claire's Figma design: band header with logo and socials, News, Shows, Merch, and a Community link that opens the Destroyed by Moths fan club on FanFest. Ocean Alley's site (https://oceanalley.com.au) is the pattern: a simple band site at one URL, with the fan club on a subdomain.
+
+## Pages and the FanFest subdomain plan
+
+- `/` is the landing page (full-bleed photo, page links, logo) and `/destroyedbymoths` the home page: News (edited in the admin area), the next shows and the Community card.
+- **Shows** (`/destroyedbymoths/shows`) lists the dates in `lib/shows.ts`. The entries there are placeholders flagged with a "Placeholder" chip; replace them with the band's dates (or move them to a Supabase table when the band wants to edit them in the admin area). A show with a `ticketUrl` gets a Tickets button.
+- **Merch** goes straight to the store when `NEXT_PUBLIC_MERCH_URL` is set (Shopify or other). Unset, the nav opens `/destroyedbymoths/merch`, a "coming soon" page.
+- **Community** is an external link to the fan club on FanFest, from `NEXT_PUBLIC_FANFEST_URL`. It defaults to the beta channel, `https://beta.fanfest.vip/destroyedbymoths`. Once Amanda confirms the band's domain, FanFest serves the channel on a subdomain of it (for example `https://fanfest.destroyedbymoths.com`) and the only change here is that env var in Vercel (Production and Preview) and `.env.local`. Shows and Merch have no Claire design yet; they reuse the News list's rows, chips and buttons.
+
+The fan club features this app used to serve itself (sign-in, quests, leaderboard, activity feed, rewards, chat, check-in, the listening quest) now live on FanFest's platform. Their routes (`/destroyedbymoths/sign-in`, `/leaderboard`, `/q/<quest>`, `/account`, `/admin`), code and Supabase tables stay in place and nothing was deleted; they are just no longer linked from the public pages. Admins still sign in at `/destroyedbymoths/sign-in` to edit News. The sections below describe that retired fan-club code.
 
 It is built to host more than one band: each band is a row in `channels`, served at `/<slug>`.
 
@@ -49,6 +58,8 @@ pnpm exec vitest run                                   # unit
 node --env-file=.env.local scripts/seed-test-users.mts  # once: admin@test.dbm, fan1..3@test.dbm
 pnpm exec playwright test                              # end to end against pnpm dev
 ```
+
+`tests/e2e/01-home.spec.ts` covers the band site (home, Shows, Merch, the Community link). The other specs (fan, admin, chat, listen) drive the retired fan-club home page and no longer pass as written; they need rework or retirement with it.
 
 The end-to-end suite signs test accounts in with generated magic-link tokens, so it needs `SUPABASE_SECRET_KEY` in `.env.local`. It wipes the test fans' XP first and, when it finishes, hides the test fans from the public boards and reopens the draws it closed. Point `E2E_BASE_URL` at a deployment to test it live (`E2E_BASE_URL=https://dbm-fanfest.vercel.app pnpm exec playwright test`).
 

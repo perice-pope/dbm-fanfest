@@ -9,3 +9,15 @@ export async function requestOrigin() {
   if (configured && !host.startsWith("localhost") && !host.startsWith("127.")) return configured;
   return `${proto}://${host}`;
 }
+
+/** Where the fan club lives: FanFest's channel for the band. The beta URL until the band's domain is confirmed, then `https://fanfest.<banddomain>`. */
+export const DEFAULT_FANFEST_URL = "https://beta.fanfest.vip/destroyedbymoths";
+export function fanfestUrl() {
+  return (process.env.NEXT_PUBLIC_FANFEST_URL || DEFAULT_FANFEST_URL).replace(/\/$/, "");
+}
+
+/** The merch store (Shopify or other). Unset means the Merch page shows a placeholder. */
+export function merchUrl(): string | null {
+  const url = process.env.NEXT_PUBLIC_MERCH_URL?.trim();
+  return url ? url : null;
+}

@@ -6,8 +6,8 @@ const hanken = Hanken_Grotesk({ variable: "--font-hanken", subsets: ["latin"], w
 const atkinson = Atkinson_Hyperlegible_Mono({ variable: "--font-atkinson", subsets: ["latin"], weight: ["400"] });
 
 export const metadata: Metadata = {
-  title: { default: "Destroyed by Moths FanFest", template: "%s FanFest" },
-  description: "Earn XP, climb the leaderboard, unlock rewards.",
+  title: "Destroyed by Moths",
+  description: "The official Destroyed by Moths site: news, shows, merch and the fan community on FanFest.",
 };
 
 export const viewport: Viewport = { themeColor: "#8d3d34", width: "device-width", initialScale: 1 };

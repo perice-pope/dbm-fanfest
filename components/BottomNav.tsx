@@ -6,21 +6,27 @@ export type NavItem = { label: string; href: string; external?: boolean };
 export function BottomNav({ items }: { items: NavItem[] }) {
   return (
     <nav aria-label="Site" className="mx-auto mt-[24px] flex h-[48px] w-[360px] max-w-[calc(100%-32px)] items-center justify-around rounded-[24px] border border-white bg-section-dark px-2 text-[16px] lg:w-[600px]">
-      {items.map((it) => it.external ? (
-        <a key={it.label} href={it.href} className="px-2 leading-none hover:underline">{it.label}</a>
-      ) : (
-        <Link key={it.label} href={it.href} className="px-2 leading-none hover:underline">{it.label}</Link>
-      ))}
+      {items.map((it) => <NavLink key={it.label} item={it} className="px-2 leading-none hover:underline" />)}
     </nav>
   );
 }
 
-export function navItems(slug: string, links: { shows?: string | null; merch?: string | null; community?: string | null }): NavItem[] {
+export function NavLink({ item, className }: { item: NavItem; className?: string }) {
+  return item.external
+    ? <a href={item.href} rel="noopener" className={className}>{item.label}</a>
+    : <Link href={item.href} className={className}>{item.label}</Link>;
+}
+
+/**
+ * The band site's pages, in the Figma's order. Shows and News live here; Merch goes straight to the store when one is
+ * configured (else to the placeholder page); Community is the fan club on FanFest.
+ */
+export function navItems(slug: string, { merchUrl, communityUrl }: { merchUrl: string | null; communityUrl: string }): NavItem[] {
   return [
-    { label: "Shows", href: links.shows || `/${slug}#news`, external: !!links.shows },
+    { label: "Shows", href: `/${slug}/shows` },
     { label: "News", href: `/${slug}#news` },
-    { label: "Merch", href: links.merch || `/${slug}#rewards`, external: !!links.merch },
-    { label: "Community", href: links.community || `/${slug}#leaderboard`, external: !!links.community },
+    merchUrl ? { label: "Merch", href: merchUrl, external: true } : { label: "Merch", href: `/${slug}/merch` },
+    { label: "Community", href: communityUrl, external: true },
   ];
 }
 
