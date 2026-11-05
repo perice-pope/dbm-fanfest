@@ -29,19 +29,3 @@ export function navItems(slug: string, { merchUrl, communityUrl }: { merchUrl: s
     { label: "Community", href: communityUrl, external: true },
   ];
 }
-
-const SOCIAL: [string, string][] = [["facebook", "fa-facebook-f"], ["x", "fa-x-twitter"], ["instagram", "fa-instagram"], ["youtube", "fa-youtube"], ["tiktok", "fa-tiktok"], ["twitch", "fa-twitch"]];
-
-export function SocialRow({ links, className }: { links: Record<string, string | null | undefined>; className?: string }) {
-  return (
-    <ul className={`flex items-center gap-[36px] max-lg:gap-[26px] ${className ?? ""}`} aria-label="Social links">
-      {SOCIAL.map(([key, icon]) => (
-        <li key={key}>
-          <a href={links[key] || "#"} target={links[key] ? "_blank" : undefined} rel="noopener noreferrer" aria-label={key} className="text-[18px] text-white">
-            <i className={`fa-brands ${icon}`} aria-hidden="true" />
-          </a>
-        </li>
-      ))}
-    </ul>
-  );
-}

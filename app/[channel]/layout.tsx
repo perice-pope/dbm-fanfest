@@ -7,7 +7,8 @@ import { linksOf } from "@/lib/channel-view";
 import { ToastProvider, XpFromQuery } from "@/components/Toast";
 import { JoinModalProvider } from "@/components/JoinModal";
 import { StatusBar } from "@/components/StatusBar";
-import { BottomNav, NavLink, SocialRow, navItems } from "@/components/BottomNav";
+import { BottomNav, NavLink, navItems } from "@/components/BottomNav";
+import { SocialRow } from "@/components/SocialRow";
 import { fanfestUrl, merchUrl } from "@/lib/site";
 import { signOut } from "@/app/[channel]/actions";
 
