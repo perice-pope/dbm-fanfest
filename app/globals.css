@@ -69,10 +69,10 @@ body {
 .fig-btn-sm-ghost { background: transparent; color: #fff; border: 1px solid #fff; }
 
 /* Chips (news tags): 33px tall, radius 7.5, mono 12px uppercase */
-.fig-chip { display: inline-flex; align-items: center; height: 33px; padding: 0 26px; border-radius: 7.5px; background: var(--section-dark); border: 1px solid var(--accent); font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.01em; text-transform: uppercase; color: #fff; white-space: nowrap; }
+.fig-chip { display: inline-flex; align-items: center; height: 33px; padding: 0 26px; border-radius: 8px; background: var(--section-dark); border: 1px solid var(--accent); font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.01em; text-transform: uppercase; color: #fff; white-space: nowrap; }
 
 /* XP badge on cards: 91x31, radius 7.5, mono 16 */
-.fig-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 91px; height: 31px; padding: 0 12px; border-radius: 7.5px; background: var(--section-dark); border: 1px solid var(--accent); font-family: var(--font-mono); font-size: 16px; color: #fff; white-space: nowrap; }
+.fig-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 91px; height: 31px; padding: 0 12px; border-radius: 8px; background: var(--section-dark); border: 1px solid var(--accent); font-family: var(--font-mono); font-size: 16px; color: #fff; white-space: nowrap; }
 
 /* Segmented control: 50px pill, accent track, dark active tab */
 .fig-seg { display: grid; grid-template-columns: repeat(3, 1fr); height: 50px; border-radius: 25px; background: var(--accent); }

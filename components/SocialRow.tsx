@@ -42,7 +42,7 @@ export function SocialRow({ links, className }: { links: Record<string, string |
         const href = links[key];
         return (
           <li key={key}>
-            <a href={href || "#"} target={href ? "_blank" : undefined} rel="noopener noreferrer" aria-label={key} className="block text-white">
+            <a href={href || "#"} target={href ? "_blank" : undefined} rel="noopener noreferrer" aria-label={key} className="block text-white transition-opacity hover:opacity-50">
               <svg viewBox={icon.viewBox} width="18" height="18" fill="currentColor" aria-hidden="true" focusable="false">
                 <path d={icon.d} />
               </svg>

@@ -6,15 +6,17 @@ export type NavItem = { label: string; href: string; external?: boolean };
 export function BottomNav({ items }: { items: NavItem[] }) {
   return (
     <nav aria-label="Site" className="mx-auto mt-[24px] flex h-[48px] w-[360px] max-w-[calc(100%-32px)] items-center justify-around rounded-[24px] border border-white bg-section-dark px-2 text-[16px] lg:w-[600px]">
-      {items.map((it) => <NavLink key={it.label} item={it} className="px-2 leading-none hover:underline" />)}
+      {items.map((it) => <NavLink key={it.label} item={it} className="px-2 leading-none" />)}
     </nav>
   );
 }
 
+/** A page link: 50% opacity on hover; the browser focus ring is left alone for keyboard users. */
 export function NavLink({ item, className }: { item: NavItem; className?: string }) {
+  const cls = `transition-opacity hover:opacity-50 ${className ?? ""}`;
   return item.external
-    ? <a href={item.href} rel="noopener" className={className}>{item.label}</a>
-    : <Link href={item.href} className={className}>{item.label}</Link>;
+    ? <a href={item.href} rel="noopener" className={cls}>{item.label}</a>
+    : <Link href={item.href} className={cls}>{item.label}</Link>;
 }
 
 /**
