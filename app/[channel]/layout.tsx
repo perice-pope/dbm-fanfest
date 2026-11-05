@@ -46,16 +46,16 @@ export default async function ChannelLayout({ children, params }: { children: Re
       <JoinModalProvider slug={slug} name={channel.name} avatar={avatar}>
         <div style={style} className="flex min-h-full flex-1 flex-col pb-[96px] text-white">
           <StatusBar />
-          {/* Nav band: logo centred, page links left on desktop, social icons right on desktop and under the logo on phones */}
+          {/* Nav band: logo centred, page links left on desktop, social icons right on desktop and under the logo on phones. The logo box (510px wide) overlaps the links and icons, so they stack above it or its link swallows their clicks. */}
           <div className="bg-band">
             <div className="relative mx-auto h-[152px] max-w-[1440px] lg:h-[150px]">
-              <ul className="absolute left-[133px] top-[110px] hidden items-center gap-[32px] text-[16px] leading-none tracking-[0.5px] lg:flex" aria-label="Pages">
+              <ul className="absolute left-[133px] top-[110px] z-10 hidden items-center gap-[32px] text-[16px] leading-none tracking-[0.5px] lg:flex" aria-label="Pages">
                 {nav.map((it) => <li key={it.label}><NavLink item={it} /></li>)}
               </ul>
               <Link href={`/${slug}`} className="absolute left-1/2 top-[24px] -translate-x-1/2" aria-label={channel.name}>
                 <Image src={logo} alt={channel.name} width={510} height={102} priority className="h-[40px] w-[200px] object-cover object-center lg:h-[102px] lg:w-[510px]" />
               </Link>
-              <SocialRow links={links as Record<string, string | null | undefined>} className="absolute max-lg:left-1/2 max-lg:top-[66px] max-lg:-translate-x-1/2 lg:right-[148px] lg:top-[112px]" />
+              <SocialRow links={links as Record<string, string | null | undefined>} className="absolute z-10 max-lg:left-1/2 max-lg:top-[66px] max-lg:-translate-x-1/2 lg:right-[148px] lg:top-[112px]" />
             </div>
           </div>
           {/* Banner header */}

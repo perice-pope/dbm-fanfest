@@ -20,10 +20,10 @@ export default async function Landing() {
       </div>
       <div className="absolute inset-0" style={{ backgroundImage: "linear-gradient(180deg, rgba(47,39,42,0.5) 0.0%, rgba(47,39,42,0.71) 100.0%)" }} aria-hidden="true" />
       <div className="relative mx-auto h-[100dvh] max-w-[1280px]">
-        <ul className="absolute left-[51px] top-[68px] hidden items-center gap-[32px] text-[16px] leading-none tracking-[0.5px] lg:flex" aria-label="Pages">
+        <ul className="absolute left-[51px] top-[68px] z-10 hidden items-center gap-[32px] text-[16px] leading-none tracking-[0.5px] lg:flex" aria-label="Pages">
           {nav.map((it) => <li key={it.label}><NavLink item={it} /></li>)}
         </ul>
-        <ul className="absolute inset-x-0 top-[30px] flex items-center justify-center gap-[30px] text-[16px] leading-none tracking-[0.5px] lg:hidden" aria-label="Pages">
+        <ul className="absolute inset-x-0 top-[30px] z-10 flex items-center justify-center gap-[30px] text-[16px] leading-none tracking-[0.5px] lg:hidden" aria-label="Pages">
           {nav.map((it) => <li key={it.label}><NavLink item={it} /></li>)}
         </ul>
         <Link href={`/${slug}`} className="absolute left-1/2 top-[56px] -translate-x-1/2 lg:top-[24px]" aria-label="Destroyed by Moths">
